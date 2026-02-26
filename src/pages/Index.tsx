@@ -67,11 +67,9 @@ const Index = () => {
                 <CardTitle className="text-lg">
                   {editingRecord ? '修改收入記錄' : '輸入收入資料'}
                 </CardTitle>
-                <CardDescription>
-                  {editingRecord
-                    ? '修改後將覆寫原有資料'
-                    : '填寫以下資料並提交至 Google Sheet'}
-                </CardDescription>
+                {editingRecord && (
+                  <CardDescription>修改後將覆寫原有資料</CardDescription>
+                )}
               </CardHeader>
               <CardContent>
                 <DataEntryForm
