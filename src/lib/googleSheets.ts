@@ -14,7 +14,7 @@ export async function fetchRecords(): Promise<RevenueRecord[]> {
   const url = getScriptUrl();
   if (!url) throw new Error('請先設定 Google Apps Script 網址');
 
-  const res = await fetch(`${url}?action=getAll`);
+  const res = await fetch(`${url}?action=getAll`, { redirect: 'follow' });
   if (!res.ok) throw new Error('無法讀取資料');
   const data = await res.json();
   return data.records || [];
@@ -26,8 +26,8 @@ export async function submitRecord(record: Omit<RevenueRecord, 'id'>): Promise<v
 
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'text/plain' },
     body: JSON.stringify({ action: 'add', ...record }),
+    redirect: 'follow',
   });
   if (!res.ok) throw new Error('提交失敗');
 }
@@ -38,8 +38,8 @@ export async function updateRecord(record: RevenueRecord): Promise<void> {
 
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'text/plain' },
     body: JSON.stringify({ action: 'update', ...record }),
+    redirect: 'follow',
   });
   if (!res.ok) throw new Error('更新失敗');
 }
