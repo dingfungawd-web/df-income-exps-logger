@@ -50,6 +50,7 @@ const DataEntryForm = ({ editingRecord, onComplete, onCancelEdit }: DataEntryFor
         department: department as Department,
         amount: parsedAmount,
         paymentMethod: paymentMethod as PaymentMethod,
+        staff: staff.trim(),
       };
 
       if (editingRecord) {
