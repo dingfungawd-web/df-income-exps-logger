@@ -33,10 +33,10 @@ const Index = () => {
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold text-foreground tracking-tight">
-              每日收入記錄
+              DF創意家居
             </h1>
             <p className="text-sm text-muted-foreground mt-0.5">
-              度尺銷售部 · 安裝部
+              每日收入記錄 · 度尺銷售部 · 安裝部
             </p>
           </div>
           <SetupDialog onSetup={() => setRefreshKey((k) => k + 1)} />

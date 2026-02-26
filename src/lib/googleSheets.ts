@@ -94,6 +94,7 @@ function doPost(e) {
         sheet.getRange(i + 1, 3).setValue(data.department);
         sheet.getRange(i + 1, 4).setValue(data.amount);
         sheet.getRange(i + 1, 5).setValue(data.paymentMethod);
+        sheet.getRange(i + 1, 6).setValue(data.staff);
         break;
       }
     }
