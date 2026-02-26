@@ -81,7 +81,7 @@ function doPost(e) {
   
   if (data.action === 'add') {
     var id = Utilities.getUuid();
-    sheet.appendRow([id, data.date, data.department, data.amount, data.paymentMethod]);
+    sheet.appendRow([id, data.date, data.department, data.amount, data.paymentMethod, data.staff]);
     return ContentService.createTextOutput(JSON.stringify({ success: true, id: id }))
       .setMimeType(ContentService.MimeType.JSON);
   }
