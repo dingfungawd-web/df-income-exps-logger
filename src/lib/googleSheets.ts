@@ -65,7 +65,8 @@ function doGet(e) {
         date: data[i][1],
         department: data[i][2],
         amount: data[i][3],
-        paymentMethod: data[i][4]
+        paymentMethod: data[i][4],
+        staff: data[i][5] || ''
       });
     }
     
@@ -80,7 +81,7 @@ function doPost(e) {
   
   if (data.action === 'add') {
     var id = Utilities.getUuid();
-    sheet.appendRow([id, data.date, data.department, data.amount, data.paymentMethod]);
+    sheet.appendRow([id, data.date, data.department, data.amount, data.paymentMethod, data.staff]);
     return ContentService.createTextOutput(JSON.stringify({ success: true, id: id }))
       .setMimeType(ContentService.MimeType.JSON);
   }
@@ -93,6 +94,7 @@ function doPost(e) {
         sheet.getRange(i + 1, 3).setValue(data.department);
         sheet.getRange(i + 1, 4).setValue(data.amount);
         sheet.getRange(i + 1, 5).setValue(data.paymentMethod);
+        sheet.getRange(i + 1, 6).setValue(data.staff);
         break;
       }
     }
