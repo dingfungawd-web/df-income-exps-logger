@@ -51,6 +51,7 @@ const RecordsTable = ({ onEdit, refreshKey }: RecordsTableProps) => {
   }, [refreshKey]);
 
   const filtered = records.filter((r) => {
+    if (r.staff !== staffName) return false;
     if (filterDept !== 'all' && r.department !== filterDept) return false;
     if (filterPayment !== 'all' && r.paymentMethod !== filterPayment) return false;
     if (searchTerm) {
