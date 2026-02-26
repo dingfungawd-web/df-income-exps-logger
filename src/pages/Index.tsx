@@ -6,6 +6,7 @@ import DataEntryForm from '@/components/DataEntryForm';
 import RecordsTable from '@/components/RecordsTable';
 import SetupDialog from '@/components/SetupDialog';
 import { type RevenueRecord } from '@/types/record';
+import dfLogo from '@/assets/df-logo.jpg';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState('entry');
@@ -29,15 +30,18 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b bg-card">
-        <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-foreground tracking-tight">
-              DF創意家居
-            </h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              每日收入記錄 · 度尺銷售部 · 安裝部
-            </p>
+      <header className="border-b bg-card shadow-sm">
+        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <img src={dfLogo} alt="DF創意家居" className="h-10 w-10 object-contain rounded" />
+            <div>
+              <h1 className="text-lg font-bold text-foreground tracking-tight leading-tight">
+                DF創意家居
+              </h1>
+              <p className="text-xs text-muted-foreground">
+                每日收入記錄系統
+              </p>
+            </div>
           </div>
           <SetupDialog onSetup={() => setRefreshKey((k) => k + 1)} />
         </div>
@@ -63,11 +67,9 @@ const Index = () => {
                 <CardTitle className="text-lg">
                   {editingRecord ? '修改收入記錄' : '輸入收入資料'}
                 </CardTitle>
-                <CardDescription>
-                  {editingRecord
-                    ? '修改後將覆寫原有資料'
-                    : '填寫以下資料並提交至 Google Sheet'}
-                </CardDescription>
+                {editingRecord && (
+                  <CardDescription>修改後將覆寫原有資料</CardDescription>
+                )}
               </CardHeader>
               <CardContent>
                 <DataEntryForm
