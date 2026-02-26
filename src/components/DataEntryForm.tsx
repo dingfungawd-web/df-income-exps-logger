@@ -117,18 +117,6 @@ const DataEntryForm = ({ editingRecord, onComplete, onCancelEdit }: DataEntryFor
         </Select>
       </div>
 
-      {/* Staff */}
-      <div className="space-y-2">
-        <Label className="text-sm font-medium text-foreground">同事</Label>
-        <Input
-          type="text"
-          value={staff}
-          onChange={(e) => setStaff(e.target.value)}
-          placeholder="輸入同事姓名"
-          className="h-11 text-base"
-        />
-      </div>
-
       {/* Amount */}
       <div className="space-y-2">
         <Label className="text-sm font-medium text-foreground">金額 (HKD)</Label>
