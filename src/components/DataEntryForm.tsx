@@ -33,7 +33,7 @@ const DataEntryForm = ({ editingRecord, onComplete, onCancelEdit }: DataEntryFor
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!date || !department || !amount || !paymentMethod || !staff.trim()) {
+    if (!date || !department || !amount || !paymentMethod) {
       toast({ title: '請填寫所有欄位', variant: 'destructive' });
       return;
     }
