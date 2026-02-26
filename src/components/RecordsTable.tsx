@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { type RevenueRecord, DEPARTMENTS, PAYMENT_METHODS } from '@/types/record';
 import { fetchRecords } from '@/lib/googleSheets';
+import { useStaff } from '@/contexts/StaffContext';
 import { useToast } from '@/hooks/use-toast';
 
 interface RecordsTableProps {
