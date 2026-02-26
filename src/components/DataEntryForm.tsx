@@ -20,6 +20,7 @@ interface DataEntryFormProps {
 }
 
 const DataEntryForm = ({ editingRecord, onComplete, onCancelEdit }: DataEntryFormProps) => {
+  const { staffName } = useStaff();
   const { toast } = useToast();
   const [date, setDate] = useState<Date | undefined>(
     editingRecord ? new Date(editingRecord.date) : new Date()
@@ -27,7 +28,6 @@ const DataEntryForm = ({ editingRecord, onComplete, onCancelEdit }: DataEntryFor
   const [department, setDepartment] = useState<Department | ''>(editingRecord?.department || '');
   const [amount, setAmount] = useState(editingRecord?.amount?.toString() || '');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | ''>(editingRecord?.paymentMethod || '');
-  const [staff, setStaff] = useState(editingRecord?.staff || '');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
