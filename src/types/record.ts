@@ -14,5 +14,5 @@ export interface RevenueRecord {
 export const DEPARTMENTS: Department[] = ['度尺銷售部', '安裝部'];
 
 export const PAYMENT_METHODS: PaymentMethod[] = [
-  '現金', '支票', '轉數快', '微信支付', '支付寶', 'PayMe'
+  '現金', '支票', '轉數快', '微信支付', 'PayMe'
 ];
