@@ -157,8 +157,7 @@ const RecordsTable = ({ onEdit, refreshKey }: RecordsTableProps) => {
                       {record.department}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-sm">{record.staff}</TableCell>
-                  <TableCell className="text-right font-semibold tabular-nums">
+                  <TableCell className="text-right font-semibold tabular-nums text-sm">
                     ${record.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </TableCell>
                   <TableCell>
