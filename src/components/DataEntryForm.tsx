@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
+import { useStaff } from '@/contexts/StaffContext';
 import { CalendarIcon, Loader2, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +20,7 @@ interface DataEntryFormProps {
 }
 
 const DataEntryForm = ({ editingRecord, onComplete, onCancelEdit }: DataEntryFormProps) => {
+  const { staffName } = useStaff();
   const { toast } = useToast();
   const [date, setDate] = useState<Date | undefined>(
     editingRecord ? new Date(editingRecord.date) : new Date()
@@ -26,13 +28,12 @@ const DataEntryForm = ({ editingRecord, onComplete, onCancelEdit }: DataEntryFor
   const [department, setDepartment] = useState<Department | ''>(editingRecord?.department || '');
   const [amount, setAmount] = useState(editingRecord?.amount?.toString() || '');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | ''>(editingRecord?.paymentMethod || '');
-  const [staff, setStaff] = useState(editingRecord?.staff || '');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!date || !department || !amount || !paymentMethod || !staff.trim()) {
+    if (!date || !department || !amount || !paymentMethod) {
       toast({ title: '請填寫所有欄位', variant: 'destructive' });
       return;
     }
@@ -50,7 +51,7 @@ const DataEntryForm = ({ editingRecord, onComplete, onCancelEdit }: DataEntryFor
         department: department as Department,
         amount: parsedAmount,
         paymentMethod: paymentMethod as PaymentMethod,
-        staff: staff.trim(),
+        staff: staffName,
       };
 
       if (editingRecord) {
@@ -67,7 +68,6 @@ const DataEntryForm = ({ editingRecord, onComplete, onCancelEdit }: DataEntryFor
         if (!editingRecord) {
           setAmount('');
           setPaymentMethod('');
-          setStaff('');
         }
         onComplete();
       }, 1200);
@@ -115,18 +115,6 @@ const DataEntryForm = ({ editingRecord, onComplete, onCancelEdit }: DataEntryFor
             ))}
           </SelectContent>
         </Select>
-      </div>
-
-      {/* Staff */}
-      <div className="space-y-2">
-        <Label className="text-sm font-medium text-foreground">同事</Label>
-        <Input
-          type="text"
-          value={staff}
-          onChange={(e) => setStaff(e.target.value)}
-          placeholder="輸入同事姓名"
-          className="h-11 text-base"
-        />
       </div>
 
       {/* Amount */}

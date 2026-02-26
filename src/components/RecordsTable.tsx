@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { type RevenueRecord, DEPARTMENTS, PAYMENT_METHODS } from '@/types/record';
 import { fetchRecords } from '@/lib/googleSheets';
+import { useStaff } from '@/contexts/StaffContext';
 import { useToast } from '@/hooks/use-toast';
 
 interface RecordsTableProps {
@@ -25,6 +26,7 @@ const paymentMethodColors: Record<string, string> = {
 };
 
 const RecordsTable = ({ onEdit, refreshKey }: RecordsTableProps) => {
+  const { staffName } = useStaff();
   const { toast } = useToast();
   const [records, setRecords] = useState<RevenueRecord[]>([]);
   const [loading, setLoading] = useState(false);
@@ -49,6 +51,7 @@ const RecordsTable = ({ onEdit, refreshKey }: RecordsTableProps) => {
   }, [refreshKey]);
 
   const filtered = records.filter((r) => {
+    if (r.staff !== staffName) return false;
     if (filterDept !== 'all' && r.department !== filterDept) return false;
     if (filterPayment !== 'all' && r.paymentMethod !== filterPayment) return false;
     if (searchTerm) {
@@ -131,9 +134,9 @@ const RecordsTable = ({ onEdit, refreshKey }: RecordsTableProps) => {
               <TableRow className="bg-muted/50">
                 <TableHead className="font-semibold">日期</TableHead>
                 <TableHead className="font-semibold">部門</TableHead>
-                <TableHead className="font-semibold">同事</TableHead>
                 <TableHead className="font-semibold text-right">金額</TableHead>
                 <TableHead className="font-semibold">收款方式</TableHead>
+                <TableHead className="font-semibold w-12">操作</TableHead>
                 <TableHead className="font-semibold w-16">操作</TableHead>
               </TableRow>
             </TableHeader>
@@ -154,8 +157,7 @@ const RecordsTable = ({ onEdit, refreshKey }: RecordsTableProps) => {
                       {record.department}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-sm">{record.staff}</TableCell>
-                  <TableCell className="text-right font-semibold tabular-nums">
+                  <TableCell className="text-right font-semibold tabular-nums text-sm">
                     ${record.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </TableCell>
                   <TableCell>
