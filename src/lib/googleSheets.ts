@@ -26,8 +26,8 @@ export async function submitRecord(record: Omit<RevenueRecord, 'id'>): Promise<v
 
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'text/plain' },
     body: JSON.stringify({ action: 'add', ...record }),
+    redirect: 'follow',
   });
   if (!res.ok) throw new Error('提交失敗');
 }
