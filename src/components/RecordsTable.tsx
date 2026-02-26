@@ -26,6 +26,7 @@ const paymentMethodColors: Record<string, string> = {
 };
 
 const RecordsTable = ({ onEdit, refreshKey }: RecordsTableProps) => {
+  const { staffName } = useStaff();
   const { toast } = useToast();
   const [records, setRecords] = useState<RevenueRecord[]>([]);
   const [loading, setLoading] = useState(false);
