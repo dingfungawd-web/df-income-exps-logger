@@ -6,6 +6,7 @@ import DataEntryForm from '@/components/DataEntryForm';
 import RecordsTable from '@/components/RecordsTable';
 import SetupDialog from '@/components/SetupDialog';
 import { type RevenueRecord } from '@/types/record';
+import dfLogo from '@/assets/df-logo.jpg';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState('entry');
