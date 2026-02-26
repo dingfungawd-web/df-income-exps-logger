@@ -134,9 +134,9 @@ const RecordsTable = ({ onEdit, refreshKey }: RecordsTableProps) => {
               <TableRow className="bg-muted/50">
                 <TableHead className="font-semibold">日期</TableHead>
                 <TableHead className="font-semibold">部門</TableHead>
-                <TableHead className="font-semibold">同事</TableHead>
                 <TableHead className="font-semibold text-right">金額</TableHead>
                 <TableHead className="font-semibold">收款方式</TableHead>
+                <TableHead className="font-semibold w-12">操作</TableHead>
                 <TableHead className="font-semibold w-16">操作</TableHead>
               </TableRow>
             </TableHeader>
