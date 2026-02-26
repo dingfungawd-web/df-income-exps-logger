@@ -65,7 +65,8 @@ function doGet(e) {
         date: data[i][1],
         department: data[i][2],
         amount: data[i][3],
-        paymentMethod: data[i][4]
+        paymentMethod: data[i][4],
+        staff: data[i][5] || ''
       });
     }
     
