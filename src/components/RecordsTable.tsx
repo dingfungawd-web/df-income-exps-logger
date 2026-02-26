@@ -20,6 +20,7 @@ const paymentMethodColors: Record<string, string> = {
   '支票': 'bg-primary/10 text-primary border-primary/20',
   '轉數快': 'bg-accent/15 text-accent-foreground border-accent/20',
   '微信支付': 'bg-success/15 text-success border-success/20',
+  '支付寶': 'bg-primary/10 text-primary border-primary/20',
   'PayMe': 'bg-destructive/10 text-destructive border-destructive/20',
 };
 
