@@ -38,8 +38,8 @@ export async function updateRecord(record: RevenueRecord): Promise<void> {
 
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'text/plain' },
     body: JSON.stringify({ action: 'update', ...record }),
+    redirect: 'follow',
   });
   if (!res.ok) throw new Error('更新失敗');
 }
