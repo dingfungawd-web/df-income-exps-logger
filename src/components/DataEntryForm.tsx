@@ -67,7 +67,7 @@ const DataEntryForm = ({ editingRecord, onComplete, onCancelEdit }: DataEntryFor
         if (!editingRecord) {
           setAmount('');
           setPaymentMethod('');
-        }
+          setStaff('');
         onComplete();
       }, 1200);
     } catch (err) {
