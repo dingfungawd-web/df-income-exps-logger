@@ -166,6 +166,7 @@ const RecordsTable = ({ onEdit, refreshKey }: RecordsTableProps) => {
                       }
                     })()}
                   </TableCell>
+                  {isAdmin && <TableCell>{record.staff}</TableCell>}
                   <TableCell>
                     <Badge variant="secondary" className="font-normal">
                       {record.department}
