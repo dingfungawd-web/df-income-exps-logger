@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
-import { Pencil, Loader2, Search, Filter } from 'lucide-react';
+import { Pencil, Loader2, Search, Filter, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -151,6 +151,7 @@ const RecordsTable = ({ onEdit, refreshKey }: RecordsTableProps) => {
                 <TableHead className="font-semibold">部門</TableHead>
                 <TableHead className="font-semibold text-right">金額</TableHead>
                 <TableHead className="font-semibold">收款方式</TableHead>
+                <TableHead className="font-semibold">交數狀態</TableHead>
                 <TableHead className="font-semibold w-12">修改記錄</TableHead>
               </TableRow>
             </TableHeader>
@@ -182,6 +183,21 @@ const RecordsTable = ({ onEdit, refreshKey }: RecordsTableProps) => {
                     >
                       {record.paymentMethod}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {(record.paymentMethod === '現金' || record.paymentMethod === '支票') ? (
+                      record.handed ? (
+                        <Badge className="bg-success/15 text-success border-success/20" variant="outline">
+                          <CheckCircle2 className="h-3 w-3 mr-1" />已交數
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="bg-warning/15 text-warning-foreground border-warning/20">
+                          <AlertCircle className="h-3 w-3 mr-1" />待交數
+                        </Badge>
+                      )
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
                   </TableCell>
                   <TableCell>
                     <Button

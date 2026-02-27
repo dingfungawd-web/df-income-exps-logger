@@ -52,6 +52,8 @@ const DataEntryForm = ({ editingRecord, onComplete, onCancelEdit }: DataEntryFor
         amount: parsedAmount,
         paymentMethod: paymentMethod as PaymentMethod,
         staff: staffName,
+        handed: false,
+        handoverDate: '',
       };
 
       if (editingRecord) {
