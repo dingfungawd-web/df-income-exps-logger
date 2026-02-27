@@ -13,7 +13,6 @@ export function setScriptUrl(url: string): void {
 
 export async function fetchRecords(): Promise<RevenueRecord[]> {
   const url = getScriptUrl();
-  if (!url) throw new Error('請先設定 Google Apps Script 網址');
 
   const res = await fetch(`${url}?action=getAll`, { redirect: 'follow' });
   if (!res.ok) throw new Error('無法讀取資料');
