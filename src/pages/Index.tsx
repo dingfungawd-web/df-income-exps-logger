@@ -81,7 +81,7 @@ const Index = () => {
             </TabsTrigger>
             <TabsTrigger value="expense-records" className="text-xs font-medium gap-1">
               <FileText className="h-3.5 w-3.5" />
-              <span>支出表</span>
+              <span>支出紀錄</span>
             </TabsTrigger>
             {isAdmin && (
               <TabsTrigger value="admin" className="text-xs font-medium gap-1">
