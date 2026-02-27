@@ -359,6 +359,21 @@ function doPost(e) {
       .setMimeType(ContentService.MimeType.JSON);
   }
 
+  // ─── 刪除用戶 ───
+  if (data.action === 'deleteUser') {
+    var sheet = getSheet('用戶');
+    var allData = sheet.getDataRange().getValues();
+    for (var i = 1; i < allData.length; i++) {
+      if (String(allData[i][0]) === String(data.name)) {
+        sheet.deleteRow(i + 1);
+        return ContentService.createTextOutput(JSON.stringify({ success: true, message: '已刪除用戶' }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+    return ContentService.createTextOutput(JSON.stringify({ success: false, message: '找不到此用戶' }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
   return ContentService.createTextOutput(JSON.stringify({ error: '未知操作' }))
     .setMimeType(ContentService.MimeType.JSON);
 }

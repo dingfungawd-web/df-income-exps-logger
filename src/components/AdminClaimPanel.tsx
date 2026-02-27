@@ -244,6 +244,7 @@ const AdminClaimPanel = () => {
                     <TableRow className="bg-muted/50">
                       <TableHead className="font-semibold">姓名</TableHead>
                       <TableHead className="font-semibold">密碼</TableHead>
+                      <TableHead className="font-semibold w-20 text-center">操作</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -251,6 +252,25 @@ const AdminClaimPanel = () => {
                       <TableRow key={i}>
                         <TableCell className="font-medium">{user.name}</TableCell>
                         <TableCell className="text-muted-foreground">{user.password}</TableCell>
+                        <TableCell className="text-center">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={async () => {
+                              if (!confirm(`確定要刪除帳戶「${user.name}」嗎？`)) return;
+                              try {
+                                await deleteUser(user.name);
+                                toast({ title: `已刪除帳戶「${user.name}」` });
+                                await loadData();
+                              } catch {
+                                toast({ title: '刪除失敗', variant: 'destructive' });
+                              }
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
