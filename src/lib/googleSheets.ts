@@ -1,4 +1,4 @@
-import { RevenueRecord, ExpenseRecord, StaffUser, ClaimRecord } from '@/types/record';
+import { RevenueRecord, ExpenseRecord, StaffUser, ClaimRecord, HandoverRecord } from '@/types/record';
 
 const SCRIPT_URL_KEY = 'google_apps_script_url';
 const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyBN0p3gIrVpB_QJefKRTuRFHuE3FqAgUnWYtTJ6QRICr6B_04L0fvbbFpb3Q1YAFQK/exec';

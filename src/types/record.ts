@@ -11,6 +11,16 @@ export interface RevenueRecord {
   amount: number;
   paymentMethod: PaymentMethod;
   staff: string;
+  handed: boolean;
+  handoverDate: string;
+}
+
+export interface HandoverRecord {
+  id: string;
+  staff: string;
+  handoverDate: string;
+  totalAmount: number;
+  revenueIds: string;
 }
 
 export interface ExpenseRecord {
