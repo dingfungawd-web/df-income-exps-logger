@@ -180,7 +180,7 @@ function getSheet(name) {
     } else if (name === 'Claim記錄') {
       sheet.appendRow(['ID', '同事', 'Claim日期', '總金額', '支出ID列表']);
     } else if (name === '交數記錄') {
-      sheet.appendRow(['ID', '同事', '交數日期', '總金額', '收入ID列表']);
+      sheet.appendRow(['ID', '同事', '交數日期', '金額', '收入ID']);
     }
   }
   return sheet;
