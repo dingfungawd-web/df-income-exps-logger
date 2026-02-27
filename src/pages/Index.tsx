@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import DataEntryForm from '@/components/DataEntryForm';
 import RecordsTable from '@/components/RecordsTable';
-import SetupDialog from '@/components/SetupDialog';
+
 import StaffLogin from '@/components/StaffLogin';
 import { useStaff } from '@/contexts/StaffContext';
 import { type RevenueRecord } from '@/types/record';
