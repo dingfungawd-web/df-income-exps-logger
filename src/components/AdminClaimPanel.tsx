@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { type ExpenseRecord, type ClaimRecord, type StaffUser } from '@/types/record';
-import { fetchExpenses, fetchClaimHistory, fetchAllUsers, claimExpenses } from '@/lib/googleSheets';
+import { fetchExpenses, fetchClaimHistory, fetchAllUsers, claimExpenses, deleteUser } from '@/lib/googleSheets';
 import { useToast } from '@/hooks/use-toast';
 
 const AdminClaimPanel = () => {
