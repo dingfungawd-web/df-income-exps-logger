@@ -1,7 +1,7 @@
 import { RevenueRecord, ExpenseRecord, StaffUser, ClaimRecord } from '@/types/record';
 
 const SCRIPT_URL_KEY = 'google_apps_script_url';
-const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyfbewKV6ZcSuMfI2Wy15MVuPIK4nHQtgYJ4Be9cg5z9ONSiohDr2GrBmPIk3bG8i8e/exec';
+const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzdJZgo3ulFR7gyyRtTVCM1sqAJNG1hbzkouKhMDP4HGUEX3OWhUvvOlzhhoCbDM7gs/exec';
 
 export function getScriptUrl(): string {
   return localStorage.getItem(SCRIPT_URL_KEY) || DEFAULT_SCRIPT_URL;
