@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { format, parseISO } from 'date-fns';
-import { Loader2, CheckCircle2, Users, DollarSign, History, Trash2 } from 'lucide-react';
+import { Loader2, CheckCircle2, Users, DollarSign, History, Trash2, Banknote } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -8,8 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { type ExpenseRecord, type ClaimRecord, type StaffUser } from '@/types/record';
-import { fetchExpenses, fetchClaimHistory, fetchAllUsers, claimExpenses, deleteUser } from '@/lib/googleSheets';
+import { type ExpenseRecord, type ClaimRecord, type StaffUser, type RevenueRecord, type HandoverRecord } from '@/types/record';
+import { fetchExpenses, fetchClaimHistory, fetchAllUsers, claimExpenses, deleteUser, fetchRecords, confirmHandover, fetchHandoverHistory } from '@/lib/googleSheets';
 import { useToast } from '@/hooks/use-toast';
 
 const AdminClaimPanel = () => {
@@ -17,20 +17,28 @@ const AdminClaimPanel = () => {
   const [expenses, setExpenses] = useState<ExpenseRecord[]>([]);
   const [claims, setClaims] = useState<ClaimRecord[]>([]);
   const [users, setUsers] = useState<StaffUser[]>([]);
+  const [revenues, setRevenues] = useState<RevenueRecord[]>([]);
+  const [handoverHistory, setHandoverHistory] = useState<HandoverRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [claimLoading, setClaimLoading] = useState(false);
+  const [handoverLoading, setHandoverLoading] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<string>('all');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  // Handover selections
+  const [handoverStaff, setHandoverStaff] = useState<string>('all');
+  const [handoverSelectedIds, setHandoverSelectedIds] = useState<Set<string>>(new Set());
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const [expData, claimData, userData] = await Promise.all([
-        fetchExpenses(), fetchClaimHistory(), fetchAllUsers()
+      const [expData, claimData, userData, revData, hoData] = await Promise.all([
+        fetchExpenses(), fetchClaimHistory(), fetchAllUsers(), fetchRecords(), fetchHandoverHistory()
       ]);
       setExpenses(expData);
       setClaims(claimData);
       setUsers(userData);
+      setRevenues(revData);
+      setHandoverHistory(hoData);
     } catch (err) {
       toast({ title: '載入資料失敗', variant: 'destructive' });
     } finally {
@@ -40,6 +48,7 @@ const AdminClaimPanel = () => {
 
   useEffect(() => { loadData(); }, []);
 
+  // ─── Claim logic (unchanged) ───
   const staffNames = useMemo(() => {
     const names = new Set(expenses.map(e => e.staff));
     return Array.from(names).sort();
@@ -76,18 +85,14 @@ const AdminClaimPanel = () => {
       toast({ title: '請選擇要 Claim 的支出', variant: 'destructive' });
       return;
     }
-
     const ids = Array.from(selectedIds);
     const staffToClaim = unclaimedExpenses.find(e => ids.includes(e.id))?.staff;
     if (!staffToClaim) return;
-
-    // Verify all selected belong to same staff
     const allSameStaff = ids.every(id => unclaimedExpenses.find(e => e.id === id)?.staff === staffToClaim);
     if (!allSameStaff) {
       toast({ title: '請只選擇同一位同事的支出進行 Claim', variant: 'destructive' });
       return;
     }
-
     setClaimLoading(true);
     try {
       await claimExpenses(ids, staffToClaim, selectedTotal);
@@ -101,6 +106,66 @@ const AdminClaimPanel = () => {
     }
   };
 
+  // ─── Handover logic ───
+  const handoverStaffNames = useMemo(() => {
+    const names = new Set(
+      revenues.filter(r => (r.paymentMethod === '現金' || r.paymentMethod === '支票') && !r.handed).map(r => r.staff)
+    );
+    return Array.from(names).sort();
+  }, [revenues]);
+
+  const unhandedRevenues = useMemo(() => {
+    return revenues
+      .filter(r => (r.paymentMethod === '現金' || r.paymentMethod === '支票') && !r.handed)
+      .filter(r => handoverStaff === 'all' || r.staff === handoverStaff)
+      .sort((a, b) => b.date.localeCompare(a.date));
+  }, [revenues, handoverStaff]);
+
+  const handoverSelectedTotal = useMemo(() => {
+    return unhandedRevenues
+      .filter(r => handoverSelectedIds.has(r.id))
+      .reduce((sum, r) => sum + r.amount, 0);
+  }, [unhandedRevenues, handoverSelectedIds]);
+
+  const toggleHandoverSelect = (id: string) => {
+    setHandoverSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const selectAllHandoverForStaff = (staff: string) => {
+    const ids = unhandedRevenues.filter(r => r.staff === staff).map(r => r.id);
+    setHandoverSelectedIds(new Set(ids));
+  };
+
+  const handleHandover = async () => {
+    if (handoverSelectedIds.size === 0) {
+      toast({ title: '請選擇要確認交數的收入', variant: 'destructive' });
+      return;
+    }
+    const ids = Array.from(handoverSelectedIds);
+    const staffToHandover = unhandedRevenues.find(r => ids.includes(r.id))?.staff;
+    if (!staffToHandover) return;
+    const allSameStaff = ids.every(id => unhandedRevenues.find(r => r.id === id)?.staff === staffToHandover);
+    if (!allSameStaff) {
+      toast({ title: '請只選擇同一位同事的收入進行交數', variant: 'destructive' });
+      return;
+    }
+    setHandoverLoading(true);
+    try {
+      await confirmHandover(ids, staffToHandover, handoverSelectedTotal);
+      toast({ title: `已確認 ${staffToHandover} 交數 $${handoverSelectedTotal.toFixed(2)}` });
+      setHandoverSelectedIds(new Set());
+      await loadData();
+    } catch (err) {
+      toast({ title: '交數確認失敗', variant: 'destructive' });
+    } finally {
+      setHandoverLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -111,13 +176,91 @@ const AdminClaimPanel = () => {
   }
 
   return (
-    <Tabs defaultValue="claim" className="space-y-4">
-      <TabsList className="grid w-full grid-cols-3 h-11">
-        <TabsTrigger value="claim" className="text-sm gap-1.5"><DollarSign className="h-4 w-4" />Claim 報銷</TabsTrigger>
-        <TabsTrigger value="history" className="text-sm gap-1.5"><History className="h-4 w-4" />Claim 記錄</TabsTrigger>
-        <TabsTrigger value="users" className="text-sm gap-1.5"><Users className="h-4 w-4" />同事帳戶</TabsTrigger>
+    <Tabs defaultValue="handover" className="space-y-4">
+      <TabsList className="grid w-full grid-cols-5 h-11">
+        <TabsTrigger value="handover" className="text-xs gap-1"><Banknote className="h-4 w-4" />交數</TabsTrigger>
+        <TabsTrigger value="claim" className="text-xs gap-1"><DollarSign className="h-4 w-4" />Claim</TabsTrigger>
+        <TabsTrigger value="handover-history" className="text-xs gap-1"><History className="h-4 w-4" />交數記錄</TabsTrigger>
+        <TabsTrigger value="history" className="text-xs gap-1"><History className="h-4 w-4" />Claim記錄</TabsTrigger>
+        <TabsTrigger value="users" className="text-xs gap-1"><Users className="h-4 w-4" />帳戶</TabsTrigger>
       </TabsList>
 
+      {/* Handover Tab */}
+      <TabsContent value="handover">
+        <Card>
+          <CardHeader className="pb-3 px-4">
+            <CardTitle className="text-base">確認交數</CardTitle>
+            <CardDescription className="text-xs">選擇同事的現金／支票收入，確認已交數</CardDescription>
+          </CardHeader>
+          <CardContent className="px-4 space-y-4">
+            <div className="flex gap-3 items-end flex-wrap">
+              <div className="flex-1 min-w-[150px]">
+                <Select value={handoverStaff} onValueChange={(v) => { setHandoverStaff(v); setHandoverSelectedIds(new Set()); }}>
+                  <SelectTrigger className="h-10"><SelectValue placeholder="篩選同事" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">所有同事</SelectItem>
+                    {handoverStaffNames.map(s => (<SelectItem key={s} value={s}>{s}</SelectItem>))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {handoverStaff !== 'all' && (
+                <Button variant="outline" size="sm" onClick={() => selectAllHandoverForStaff(handoverStaff)}>
+                  全選 {handoverStaff}
+                </Button>
+              )}
+            </div>
+
+            {handoverSelectedIds.size > 0 && (
+              <div className="flex items-center justify-between p-3 rounded-lg bg-primary/5 border border-primary/20">
+                <span className="text-sm font-medium">已選 {handoverSelectedIds.size} 筆，總計: <span className="text-primary font-bold">${handoverSelectedTotal.toFixed(2)}</span></span>
+                <Button onClick={handleHandover} disabled={handoverLoading} size="sm">
+                  {handoverLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  <CheckCircle2 className="mr-1.5 h-4 w-4" />確認交數
+                </Button>
+              </div>
+            )}
+
+            {unhandedRevenues.length === 0 ? (
+              <div className="py-12 text-center text-muted-foreground">
+                <p className="font-medium">暫無待交數收入</p>
+              </div>
+            ) : (
+              <div className="rounded-lg border overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50">
+                      <TableHead className="w-10"></TableHead>
+                      <TableHead className="font-semibold">日期</TableHead>
+                      <TableHead className="font-semibold">同事</TableHead>
+                      <TableHead className="font-semibold">收款方式</TableHead>
+                      <TableHead className="font-semibold">部門</TableHead>
+                      <TableHead className="font-semibold text-right">金額</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {unhandedRevenues.map((rev) => (
+                      <TableRow key={rev.id} className="hover:bg-muted/30 cursor-pointer" onClick={() => toggleHandoverSelect(rev.id)}>
+                        <TableCell>
+                          <Checkbox checked={handoverSelectedIds.has(rev.id)} onCheckedChange={() => toggleHandoverSelect(rev.id)} />
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {(() => { try { return format(parseISO(rev.date), 'MM/dd'); } catch { return rev.date; } })()}
+                        </TableCell>
+                        <TableCell>{rev.staff}</TableCell>
+                        <TableCell><Badge variant="outline">{rev.paymentMethod}</Badge></TableCell>
+                        <TableCell><Badge variant="secondary" className="font-normal">{rev.department}</Badge></TableCell>
+                        <TableCell className="text-right font-semibold tabular-nums">${rev.amount.toFixed(2)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      {/* Claim Tab */}
       <TabsContent value="claim">
         <Card>
           <CardHeader className="pb-3 px-4">
@@ -190,6 +333,46 @@ const AdminClaimPanel = () => {
         </Card>
       </TabsContent>
 
+      {/* Handover History */}
+      <TabsContent value="handover-history">
+        <Card>
+          <CardHeader className="pb-3 px-4">
+            <CardTitle className="text-base">交數歷史記錄</CardTitle>
+          </CardHeader>
+          <CardContent className="px-4">
+            {handoverHistory.length === 0 ? (
+              <div className="py-12 text-center text-muted-foreground"><p>暫無交數記錄</p></div>
+            ) : (
+              <div className="rounded-lg border overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50">
+                      <TableHead className="font-semibold">日期</TableHead>
+                      <TableHead className="font-semibold">同事</TableHead>
+                      <TableHead className="font-semibold text-right">金額</TableHead>
+                      <TableHead className="font-semibold">項目數</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {handoverHistory.sort((a, b) => b.handoverDate.localeCompare(a.handoverDate)).map((h) => (
+                      <TableRow key={h.id}>
+                        <TableCell className="font-medium">
+                          {(() => { try { return format(parseISO(h.handoverDate), 'yyyy/MM/dd'); } catch { return h.handoverDate; } })()}
+                        </TableCell>
+                        <TableCell>{h.staff}</TableCell>
+                        <TableCell className="text-right font-semibold tabular-nums">${Number(h.totalAmount).toFixed(2)}</TableCell>
+                        <TableCell>{h.revenueIds ? h.revenueIds.split(',').length : 0} 筆</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      {/* Claim History */}
       <TabsContent value="history">
         <Card>
           <CardHeader className="pb-3 px-4">
@@ -228,6 +411,7 @@ const AdminClaimPanel = () => {
         </Card>
       </TabsContent>
 
+      {/* Users Tab */}
       <TabsContent value="users">
         <Card>
           <CardHeader className="pb-3 px-4">
