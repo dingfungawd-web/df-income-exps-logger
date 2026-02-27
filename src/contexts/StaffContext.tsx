@@ -1,32 +1,38 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, type ReactNode } from 'react';
 
 interface StaffContextType {
   staffName: string;
-  setStaffName: (name: string) => void;
-  logout: () => void;
+  isAdmin: boolean;
   isLoggedIn: boolean;
+  setStaffLogin: (name: string, admin: boolean) => void;
+  logout: () => void;
 }
 
 const StaffContext = createContext<StaffContextType | null>(null);
 
 const STAFF_KEY = 'df_staff_name';
+const ADMIN_KEY = 'df_is_admin';
 
 export const StaffProvider = ({ children }: { children: ReactNode }) => {
-  const [staffName, setStaffNameState] = useState(() => sessionStorage.getItem(STAFF_KEY) || '');
+  const [staffName, setStaffName] = useState(() => sessionStorage.getItem(STAFF_KEY) || '');
+  const [isAdmin, setIsAdmin] = useState(() => sessionStorage.getItem(ADMIN_KEY) === 'true');
 
-  const setStaffName = (name: string) => {
-    const trimmed = name.trim();
-    setStaffNameState(trimmed);
-    sessionStorage.setItem(STAFF_KEY, trimmed);
+  const setStaffLogin = (name: string, admin: boolean) => {
+    setStaffName(name);
+    setIsAdmin(admin);
+    sessionStorage.setItem(STAFF_KEY, name);
+    sessionStorage.setItem(ADMIN_KEY, admin ? 'true' : 'false');
   };
 
   const logout = () => {
-    setStaffNameState('');
+    setStaffName('');
+    setIsAdmin(false);
     sessionStorage.removeItem(STAFF_KEY);
+    sessionStorage.removeItem(ADMIN_KEY);
   };
 
   return (
-    <StaffContext.Provider value={{ staffName, setStaffName, logout, isLoggedIn: !!staffName }}>
+    <StaffContext.Provider value={{ staffName, isAdmin, isLoggedIn: !!staffName, setStaffLogin, logout }}>
       {children}
     </StaffContext.Provider>
   );

@@ -26,7 +26,7 @@ const paymentMethodColors: Record<string, string> = {
 };
 
 const RecordsTable = ({ onEdit, refreshKey }: RecordsTableProps) => {
-  const { staffName } = useStaff();
+  const { staffName, isAdmin } = useStaff();
   const { toast } = useToast();
   const [records, setRecords] = useState<RevenueRecord[]>([]);
   const [loading, setLoading] = useState(false);
@@ -51,18 +51,19 @@ const RecordsTable = ({ onEdit, refreshKey }: RecordsTableProps) => {
   }, [refreshKey]);
 
   const filtered = records.filter((r) => {
-    if (r.staff !== staffName) return false;
+    if (!isAdmin && r.staff !== staffName) return false;
 
-    // Only show records within the last 14 days
-    try {
-      const recordDate = parseISO(r.date);
-      const fourteenDaysAgo = new Date();
-      fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
-      fourteenDaysAgo.setHours(0, 0, 0, 0);
-      if (recordDate < fourteenDaysAgo) return false;
-    } catch {
-      // If date parsing fails, exclude the record
-      return false;
+    // Only show records within the last 14 days for non-admin
+    if (!isAdmin) {
+      try {
+        const recordDate = parseISO(r.date);
+        const fourteenDaysAgo = new Date();
+        fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+        fourteenDaysAgo.setHours(0, 0, 0, 0);
+        if (recordDate < fourteenDaysAgo) return false;
+      } catch {
+        return false;
+      }
     }
 
     if (filterDept !== 'all' && r.department !== filterDept) return false;
@@ -146,11 +147,11 @@ const RecordsTable = ({ onEdit, refreshKey }: RecordsTableProps) => {
             <TableHeader>
               <TableRow className="bg-muted/50">
                 <TableHead className="font-semibold">日期</TableHead>
+                {isAdmin && <TableHead className="font-semibold">同事</TableHead>}
                 <TableHead className="font-semibold">部門</TableHead>
                 <TableHead className="font-semibold text-right">金額</TableHead>
                 <TableHead className="font-semibold">收款方式</TableHead>
                 <TableHead className="font-semibold w-12">操作</TableHead>
-                <TableHead className="font-semibold w-16">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -165,6 +166,7 @@ const RecordsTable = ({ onEdit, refreshKey }: RecordsTableProps) => {
                       }
                     })()}
                   </TableCell>
+                  {isAdmin && <TableCell>{record.staff}</TableCell>}
                   <TableCell>
                     <Badge variant="secondary" className="font-normal">
                       {record.department}
