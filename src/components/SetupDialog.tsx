@@ -22,7 +22,7 @@ const SetupDialog = ({ onSetup }: SetupDialogProps) => {
   const { toast } = useToast();
   const [url, setUrl] = useState(getScriptUrl() || '');
   const [copied, setCopied] = useState(false);
-  const [open, setOpen] = useState(!getScriptUrl());
+  const [open, setOpen] = useState(false);
 
   const handleSave = () => {
     if (!url.trim()) {
