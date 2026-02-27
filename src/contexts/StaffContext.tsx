@@ -12,12 +12,12 @@ const StaffContext = createContext<StaffContextType | null>(null);
 const STAFF_KEY = 'df_staff_name';
 
 export const StaffProvider = ({ children }: { children: ReactNode }) => {
-  const [staffName, setStaffNameState] = useState(() => localStorage.getItem(STAFF_KEY) || '');
+  const [staffName, setStaffNameState] = useState(() => sessionStorage.getItem(STAFF_KEY) || '');
 
   const setStaffName = (name: string) => {
     const trimmed = name.trim();
     setStaffNameState(trimmed);
-    localStorage.setItem(STAFF_KEY, trimmed);
+    sessionStorage.setItem(STAFF_KEY, trimmed);
   };
 
   const logout = () => {
