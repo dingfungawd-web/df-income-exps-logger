@@ -124,6 +124,17 @@ export async function fetchAllUsers(): Promise<StaffUser[]> {
   return data.users || [];
 }
 
+export async function deleteUser(name: string): Promise<{ success: boolean; message: string }> {
+  const url = getScriptUrl();
+  const res = await fetch(url, {
+    method: 'POST',
+    body: JSON.stringify({ action: 'deleteUser', name }),
+    redirect: 'follow',
+  });
+  if (!res.ok) throw new Error('刪除用戶失敗');
+  return res.json();
+}
+
 export const APPS_SCRIPT_CODE = `
 // ====== DF創意家居 - Google Apps Script ======
 // 部署為網路應用程式（Deploy > New deployment > Web app）
@@ -345,6 +356,21 @@ function doPost(e) {
     }
     sheet.appendRow([data.name, String(data.password)]);
     return ContentService.createTextOutput(JSON.stringify({ success: true, message: '註冊成功' }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // ─── 刪除用戶 ───
+  if (data.action === 'deleteUser') {
+    var sheet = getSheet('用戶');
+    var allData = sheet.getDataRange().getValues();
+    for (var i = 1; i < allData.length; i++) {
+      if (String(allData[i][0]) === String(data.name)) {
+        sheet.deleteRow(i + 1);
+        return ContentService.createTextOutput(JSON.stringify({ success: true, message: '已刪除用戶' }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+    return ContentService.createTextOutput(JSON.stringify({ success: false, message: '找不到此用戶' }))
       .setMimeType(ContentService.MimeType.JSON);
   }
 
