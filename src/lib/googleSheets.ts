@@ -180,7 +180,7 @@ function getSheet(name) {
     } else if (name === 'Claim記錄') {
       sheet.appendRow(['ID', '同事', 'Claim日期', '總金額', '支出ID列表']);
     } else if (name === '交數記錄') {
-      sheet.appendRow(['ID', '同事', '交數日期', '總金額', '收入ID列表']);
+      sheet.appendRow(['ID', '同事', '交數日期', '金額', '收入ID']);
     }
   }
   return sheet;
@@ -367,7 +367,6 @@ function doPost(e) {
   if (data.action === 'confirmHandover') {
     var revSheet = getSheet('收入');
     var hoSheet = getSheet('交數記錄');
-    var hoId = Utilities.getUuid();
     var hoDate = Utilities.formatDate(new Date(), 'Asia/Hong_Kong', 'yyyy-MM-dd');
     var revenueIds = data.revenueIds;
 
@@ -376,12 +375,13 @@ function doPost(e) {
       if (revenueIds.indexOf(allData[i][0]) > -1) {
         revSheet.getRange(i + 1, 7).setValue(true);
         revSheet.getRange(i + 1, 8).setValue(hoDate);
+        // 每筆收入獨立寫入交數記錄
+        var hoId = Utilities.getUuid();
+        hoSheet.appendRow([hoId, data.staff, hoDate, allData[i][3], allData[i][0]]);
       }
     }
 
-    hoSheet.appendRow([hoId, data.staff, hoDate, data.totalAmount, revenueIds.join(',')]);
-
-    return ContentService.createTextOutput(JSON.stringify({ success: true, id: hoId }))
+    return ContentService.createTextOutput(JSON.stringify({ success: true }))
       .setMimeType(ContentService.MimeType.JSON);
   }
 
