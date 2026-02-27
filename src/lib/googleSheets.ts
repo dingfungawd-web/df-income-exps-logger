@@ -160,10 +160,11 @@ export const APPS_SCRIPT_CODE = `
 // 存取權限設為「所有人」
 //
 // 需要以下 Sheet 分頁（首次請求時自動建立）:
-// 1. "收入"     - ID, 日期, 部門, 金額, 收款方式, 同事
-// 2. "支出"     - ID, 日期, 部門, 同事, 支出類別, 金額, 已Claim, Claim日期, Claim金額
-// 3. "用戶"     - 姓名, 密碼
-// 4. "Claim記錄" - ID, 同事, Claim日期, 總金額, 支出ID列表
+// 1. "收入"       - ID, 日期, 部門, 金額, 收款方式, 同事, 已交數, 交數日期
+// 2. "支出"       - ID, 日期, 部門, 同事, 支出類別, 金額, 已Claim, Claim日期, Claim金額
+// 3. "用戶"       - 姓名, 密碼
+// 4. "Claim記錄"  - ID, 同事, Claim日期, 總金額, 支出ID列表
+// 5. "交數記錄"   - ID, 同事, 交數日期, 總金額, 收入ID列表
 
 function getSheet(name) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -171,13 +172,15 @@ function getSheet(name) {
   if (!sheet) {
     sheet = ss.insertSheet(name);
     if (name === '收入') {
-      sheet.appendRow(['ID', '日期', '部門', '金額', '收款方式', '同事']);
+      sheet.appendRow(['ID', '日期', '部門', '金額', '收款方式', '同事', '已交數', '交數日期']);
     } else if (name === '支出') {
       sheet.appendRow(['ID', '日期', '部門', '同事', '支出類別', '金額', '已Claim', 'Claim日期', 'Claim金額']);
     } else if (name === '用戶') {
       sheet.appendRow(['姓名', '密碼']);
     } else if (name === 'Claim記錄') {
       sheet.appendRow(['ID', '同事', 'Claim日期', '總金額', '支出ID列表']);
+    } else if (name === '交數記錄') {
+      sheet.appendRow(['ID', '同事', '交數日期', '總金額', '收入ID列表']);
     }
   }
   return sheet;
@@ -198,7 +201,9 @@ function doGet(e) {
         department: data[i][2],
         amount: data[i][3],
         paymentMethod: data[i][4],
-        staff: data[i][5] || ''
+        staff: data[i][5] || '',
+        handed: data[i][6] === true || data[i][6] === 'TRUE' || data[i][6] === 'true',
+        handoverDate: data[i][7] || ''
       });
     }
     return ContentService.createTextOutput(JSON.stringify({ records: records }))
@@ -245,6 +250,24 @@ function doGet(e) {
       .setMimeType(ContentService.MimeType.JSON);
   }
 
+  if (action === 'getHandoverHistory') {
+    var sheet = getSheet('交數記錄');
+    var data = sheet.getDataRange().getValues();
+    var records = [];
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][0] === '') continue;
+      records.push({
+        id: data[i][0],
+        staff: data[i][1],
+        handoverDate: data[i][2],
+        totalAmount: data[i][3],
+        revenueIds: data[i][4]
+      });
+    }
+    return ContentService.createTextOutput(JSON.stringify({ records: records }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
   if (action === 'getAllUsers') {
     var sheet = getSheet('用戶');
     var data = sheet.getDataRange().getValues();
@@ -268,7 +291,7 @@ function doPost(e) {
   if (data.action === 'add') {
     var sheet = getSheet('收入');
     var id = Utilities.getUuid();
-    sheet.appendRow([id, data.date, data.department, data.amount, data.paymentMethod, data.staff]);
+    sheet.appendRow([id, data.date, data.department, data.amount, data.paymentMethod, data.staff, false, '']);
     return ContentService.createTextOutput(JSON.stringify({ success: true, id: id }))
       .setMimeType(ContentService.MimeType.JSON);
   }
@@ -336,6 +359,28 @@ function doPost(e) {
     claimSheet.appendRow([claimId, data.staff, claimDate, data.totalAmount, expenseIds.join(',')]);
 
     return ContentService.createTextOutput(JSON.stringify({ success: true, id: claimId }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // ─── 交數確認 ───
+  if (data.action === 'confirmHandover') {
+    var revSheet = getSheet('收入');
+    var hoSheet = getSheet('交數記錄');
+    var hoId = Utilities.getUuid();
+    var hoDate = Utilities.formatDate(new Date(), 'Asia/Hong_Kong', 'yyyy-MM-dd');
+    var revenueIds = data.revenueIds;
+
+    var allData = revSheet.getDataRange().getValues();
+    for (var i = 1; i < allData.length; i++) {
+      if (revenueIds.indexOf(allData[i][0]) > -1) {
+        revSheet.getRange(i + 1, 7).setValue(true);
+        revSheet.getRange(i + 1, 8).setValue(hoDate);
+      }
+    }
+
+    hoSheet.appendRow([hoId, data.staff, hoDate, data.totalAmount, revenueIds.join(',')]);
+
+    return ContentService.createTextOutput(JSON.stringify({ success: true, id: hoId }))
       .setMimeType(ContentService.MimeType.JSON);
   }
 
