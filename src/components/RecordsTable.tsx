@@ -185,6 +185,21 @@ const RecordsTable = ({ onEdit, refreshKey }: RecordsTableProps) => {
                     </Badge>
                   </TableCell>
                   <TableCell>
+                    {(record.paymentMethod === '現金' || record.paymentMethod === '支票') ? (
+                      record.handed ? (
+                        <Badge className="bg-success/15 text-success border-success/20" variant="outline">
+                          <CheckCircle2 className="h-3 w-3 mr-1" />已交數
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="bg-warning/15 text-warning-foreground border-warning/20">
+                          <AlertCircle className="h-3 w-3 mr-1" />待交數
+                        </Badge>
+                      )
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
                     <Button
                       variant="ghost"
                       size="icon"
