@@ -4,7 +4,12 @@ const SCRIPT_URL_KEY = 'google_apps_script_url';
 const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwTjVFZBwp4v0N5khRAIq3qjvBk_PefpBAXFdZVqel4q2Ailmkkr8pKaFXqdb4k_bsq/exec';
 
 export function getScriptUrl(): string {
-  return localStorage.getItem(SCRIPT_URL_KEY) || DEFAULT_SCRIPT_URL;
+  const stored = localStorage.getItem(SCRIPT_URL_KEY);
+  // If stored URL differs from default, clear it to use latest default
+  if (stored && stored !== DEFAULT_SCRIPT_URL) {
+    localStorage.removeItem(SCRIPT_URL_KEY);
+  }
+  return DEFAULT_SCRIPT_URL;
 }
 
 export function setScriptUrl(url: string): void {
