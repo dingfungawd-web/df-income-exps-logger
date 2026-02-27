@@ -151,6 +151,7 @@ const RecordsTable = ({ onEdit, refreshKey }: RecordsTableProps) => {
                 <TableHead className="font-semibold">部門</TableHead>
                 <TableHead className="font-semibold text-right">金額</TableHead>
                 <TableHead className="font-semibold">收款方式</TableHead>
+                <TableHead className="font-semibold">交數狀態</TableHead>
                 <TableHead className="font-semibold w-12">修改記錄</TableHead>
               </TableRow>
             </TableHeader>
