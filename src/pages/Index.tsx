@@ -46,6 +46,7 @@ const Index = () => {
             </div>
           </div>
           <div className="flex items-center gap-1.5">
+            <Button variant="ghost" size="icon" onClick={logout} className="h-9 w-9" title="登出">
               <LogOut className="h-4 w-4" />
             </Button>
           </div>
