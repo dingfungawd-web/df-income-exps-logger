@@ -1,9 +1,10 @@
 import { RevenueRecord } from '@/types/record';
 
 const SCRIPT_URL_KEY = 'google_apps_script_url';
+const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyfbewKV6ZcSuMfI2Wy15MVuPIK4nHQtgYJ4Be9cg5z9ONSiohDr2GrBmPIk3bG8i8e/exec';
 
-export function getScriptUrl(): string | null {
-  return localStorage.getItem(SCRIPT_URL_KEY);
+export function getScriptUrl(): string {
+  return localStorage.getItem(SCRIPT_URL_KEY) || DEFAULT_SCRIPT_URL;
 }
 
 export function setScriptUrl(url: string): void {
@@ -12,7 +13,6 @@ export function setScriptUrl(url: string): void {
 
 export async function fetchRecords(): Promise<RevenueRecord[]> {
   const url = getScriptUrl();
-  if (!url) throw new Error('請先設定 Google Apps Script 網址');
 
   const res = await fetch(`${url}?action=getAll`, { redirect: 'follow' });
   if (!res.ok) throw new Error('無法讀取資料');
@@ -22,7 +22,6 @@ export async function fetchRecords(): Promise<RevenueRecord[]> {
 
 export async function submitRecord(record: Omit<RevenueRecord, 'id'>): Promise<void> {
   const url = getScriptUrl();
-  if (!url) throw new Error('請先設定 Google Apps Script 網址');
 
   const res = await fetch(url, {
     method: 'POST',
@@ -34,7 +33,6 @@ export async function submitRecord(record: Omit<RevenueRecord, 'id'>): Promise<v
 
 export async function updateRecord(record: RevenueRecord): Promise<void> {
   const url = getScriptUrl();
-  if (!url) throw new Error('請先設定 Google Apps Script 網址');
 
   const res = await fetch(url, {
     method: 'POST',
