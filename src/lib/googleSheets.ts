@@ -124,6 +124,17 @@ export async function fetchAllUsers(): Promise<StaffUser[]> {
   return data.users || [];
 }
 
+export async function deleteUser(name: string): Promise<{ success: boolean; message: string }> {
+  const url = getScriptUrl();
+  const res = await fetch(url, {
+    method: 'POST',
+    body: JSON.stringify({ action: 'deleteUser', name }),
+    redirect: 'follow',
+  });
+  if (!res.ok) throw new Error('刪除用戶失敗');
+  return res.json();
+}
+
 export const APPS_SCRIPT_CODE = `
 // ====== DF創意家居 - Google Apps Script ======
 // 部署為網路應用程式（Deploy > New deployment > Web app）
