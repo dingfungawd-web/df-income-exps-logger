@@ -45,6 +45,25 @@ export async function updateRecord(record: RevenueRecord): Promise<void> {
   if (!res.ok) throw new Error('更新失敗');
 }
 
+// ─── Handover 交數 ───
+export async function fetchHandoverHistory(): Promise<HandoverRecord[]> {
+  const url = getScriptUrl();
+  const res = await fetch(`${url}?action=getHandoverHistory`, { redirect: 'follow' });
+  if (!res.ok) throw new Error('無法讀取交數記錄');
+  const data = await res.json();
+  return data.records || [];
+}
+
+export async function confirmHandover(revenueIds: string[], staff: string, totalAmount: number): Promise<void> {
+  const url = getScriptUrl();
+  const res = await fetch(url, {
+    method: 'POST',
+    body: JSON.stringify({ action: 'confirmHandover', revenueIds, staff, totalAmount }),
+    redirect: 'follow',
+  });
+  if (!res.ok) throw new Error('交數確認失敗');
+}
+
 // ─── Expenses ───
 export async function fetchExpenses(): Promise<ExpenseRecord[]> {
   const url = getScriptUrl();
