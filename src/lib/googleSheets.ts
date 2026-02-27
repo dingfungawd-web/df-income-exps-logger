@@ -125,15 +125,15 @@ export async function fetchAllUsers(): Promise<StaffUser[]> {
 }
 
 export const APPS_SCRIPT_CODE = `
-// ====== 請將此程式碼貼到 Google Apps Script 編輯器中 ======
-// 然後部署為網路應用程式（Deploy > New deployment > Web app）
+// ====== DF創意家居 - Google Apps Script ======
+// 部署為網路應用程式（Deploy > New deployment > Web app）
 // 存取權限設為「所有人」
-// 
-// 需要以下 Sheet 分頁:
-// 1. "收入" - 欄位: ID, 日期, 部門, 金額, 收款方式, 同事
-// 2. "支出" - 欄位: ID, 日期, 部門, 同事, 支出類別, 金額, 已Claim, Claim日期, Claim金額
-// 3. "用戶" - 欄位: 姓名, 密碼
-// 4. "Claim記錄" - 欄位: ID, 同事, Claim日期, 總金額, 支出ID列表
+//
+// 需要以下 Sheet 分頁（首次請求時自動建立）:
+// 1. "收入"     - ID, 日期, 部門, 金額, 收款方式, 同事
+// 2. "支出"     - ID, 日期, 部門, 同事, 支出類別, 金額, 已Claim, Claim日期, Claim金額
+// 3. "用戶"     - 姓名, 密碼
+// 4. "Claim記錄" - ID, 同事, Claim日期, 總金額, 支出ID列表
 
 function getSheet(name) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -155,7 +155,7 @@ function getSheet(name) {
 
 function doGet(e) {
   var action = e.parameter.action;
-  
+
   if (action === 'getAll') {
     var sheet = getSheet('收入');
     var data = sheet.getDataRange().getValues();
@@ -174,7 +174,7 @@ function doGet(e) {
     return ContentService.createTextOutput(JSON.stringify({ records: records }))
       .setMimeType(ContentService.MimeType.JSON);
   }
-  
+
   if (action === 'getExpenses') {
     var sheet = getSheet('支出');
     var data = sheet.getDataRange().getValues();
@@ -196,7 +196,7 @@ function doGet(e) {
     return ContentService.createTextOutput(JSON.stringify({ records: records }))
       .setMimeType(ContentService.MimeType.JSON);
   }
-  
+
   if (action === 'getClaimHistory') {
     var sheet = getSheet('Claim記錄');
     var data = sheet.getDataRange().getValues();
@@ -214,24 +214,27 @@ function doGet(e) {
     return ContentService.createTextOutput(JSON.stringify({ records: records }))
       .setMimeType(ContentService.MimeType.JSON);
   }
-  
+
   if (action === 'getAllUsers') {
     var sheet = getSheet('用戶');
     var data = sheet.getDataRange().getValues();
     var users = [];
     for (var i = 1; i < data.length; i++) {
       if (data[i][0] === '') continue;
-      users.push({ name: data[i][0], password: data[i][1] });
+      users.push({ name: String(data[i][0]), password: String(data[i][1]) });
     }
     return ContentService.createTextOutput(JSON.stringify({ users: users }))
       .setMimeType(ContentService.MimeType.JSON);
   }
+
+  return ContentService.createTextOutput(JSON.stringify({ error: '未知操作' }))
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
 function doPost(e) {
   var data = JSON.parse(e.postData.contents);
-  
-  // ─── Revenue ───
+
+  // ─── 收入 ───
   if (data.action === 'add') {
     var sheet = getSheet('收入');
     var id = Utilities.getUuid();
@@ -239,7 +242,7 @@ function doPost(e) {
     return ContentService.createTextOutput(JSON.stringify({ success: true, id: id }))
       .setMimeType(ContentService.MimeType.JSON);
   }
-  
+
   if (data.action === 'update') {
     var sheet = getSheet('收入');
     var allData = sheet.getDataRange().getValues();
@@ -256,8 +259,8 @@ function doPost(e) {
     return ContentService.createTextOutput(JSON.stringify({ success: true }))
       .setMimeType(ContentService.MimeType.JSON);
   }
-  
-  // ─── Expenses ───
+
+  // ─── 支出 ───
   if (data.action === 'addExpense') {
     var sheet = getSheet('支出');
     var id = Utilities.getUuid();
@@ -265,7 +268,7 @@ function doPost(e) {
     return ContentService.createTextOutput(JSON.stringify({ success: true, id: id }))
       .setMimeType(ContentService.MimeType.JSON);
   }
-  
+
   if (data.action === 'updateExpense') {
     var sheet = getSheet('支出');
     var allData = sheet.getDataRange().getValues();
@@ -282,45 +285,42 @@ function doPost(e) {
     return ContentService.createTextOutput(JSON.stringify({ success: true }))
       .setMimeType(ContentService.MimeType.JSON);
   }
-  
-  // ─── Claim ───
+
+  // ─── Claim 報銷 ───
   if (data.action === 'claimExpenses') {
     var expSheet = getSheet('支出');
     var claimSheet = getSheet('Claim記錄');
     var claimId = Utilities.getUuid();
     var claimDate = Utilities.formatDate(new Date(), 'Asia/Hong_Kong', 'yyyy-MM-dd');
     var expenseIds = data.expenseIds;
-    
-    // Mark each expense as claimed
+
     var allData = expSheet.getDataRange().getValues();
     for (var i = 1; i < allData.length; i++) {
       if (expenseIds.indexOf(allData[i][0]) > -1) {
         expSheet.getRange(i + 1, 7).setValue(true);
         expSheet.getRange(i + 1, 8).setValue(claimDate);
-        expSheet.getRange(i + 1, 9).setValue(allData[i][5]); // claim amount = expense amount
+        expSheet.getRange(i + 1, 9).setValue(allData[i][5]);
       }
     }
-    
-    // Add claim record
+
     claimSheet.appendRow([claimId, data.staff, claimDate, data.totalAmount, expenseIds.join(',')]);
-    
+
     return ContentService.createTextOutput(JSON.stringify({ success: true, id: claimId }))
       .setMimeType(ContentService.MimeType.JSON);
   }
-  
-  // ─── Auth ───
+
+  // ─── 登入 ───
   if (data.action === 'login') {
-    // Admin check
-    if (data.name === 'admin' && data.password === '20170402') {
+    if (data.name === 'admin' && String(data.password) === '20170402') {
       return ContentService.createTextOutput(JSON.stringify({ success: true, message: 'admin' }))
         .setMimeType(ContentService.MimeType.JSON);
     }
-    
+
     var sheet = getSheet('用戶');
     var allData = sheet.getDataRange().getValues();
     for (var i = 1; i < allData.length; i++) {
-      if (allData[i][0] === data.name) {
-        if (allData[i][1] === data.password) {
+      if (String(allData[i][0]) === String(data.name)) {
+        if (String(allData[i][1]) === String(data.password)) {
           return ContentService.createTextOutput(JSON.stringify({ success: true, message: 'ok' }))
             .setMimeType(ContentService.MimeType.JSON);
         } else {
@@ -332,19 +332,23 @@ function doPost(e) {
     return ContentService.createTextOutput(JSON.stringify({ success: false, message: '用戶不存在，請先註冊' }))
       .setMimeType(ContentService.MimeType.JSON);
   }
-  
+
+  // ─── 註冊 ───
   if (data.action === 'register') {
     var sheet = getSheet('用戶');
     var allData = sheet.getDataRange().getValues();
     for (var i = 1; i < allData.length; i++) {
-      if (allData[i][0] === data.name) {
+      if (String(allData[i][0]) === String(data.name)) {
         return ContentService.createTextOutput(JSON.stringify({ success: false, message: '此名稱已註冊' }))
           .setMimeType(ContentService.MimeType.JSON);
       }
     }
-    sheet.appendRow([data.name, data.password]);
+    sheet.appendRow([data.name, String(data.password)]);
     return ContentService.createTextOutput(JSON.stringify({ success: true, message: '註冊成功' }))
       .setMimeType(ContentService.MimeType.JSON);
   }
+
+  return ContentService.createTextOutput(JSON.stringify({ error: '未知操作' }))
+    .setMimeType(ContentService.MimeType.JSON);
 }
 `;
