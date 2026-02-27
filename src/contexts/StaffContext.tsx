@@ -22,7 +22,7 @@ export const StaffProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = () => {
     setStaffNameState('');
-    localStorage.removeItem(STAFF_KEY);
+    sessionStorage.removeItem(STAFF_KEY);
   };
 
   return (
