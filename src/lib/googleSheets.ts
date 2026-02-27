@@ -291,7 +291,8 @@ function doPost(e) {
   if (data.action === 'add') {
     var sheet = getSheet('收入');
     var id = Utilities.getUuid();
-    sheet.appendRow([id, data.date, data.department, data.amount, data.paymentMethod, data.staff, false, '']);
+    var needHandover = (data.paymentMethod === '現金' || data.paymentMethod === '支票');
+    sheet.appendRow([id, data.date, data.department, data.amount, data.paymentMethod, data.staff, needHandover ? false : '', needHandover ? '' : '']);
     return ContentService.createTextOutput(JSON.stringify({ success: true, id: id }))
       .setMimeType(ContentService.MimeType.JSON);
   }
