@@ -22,7 +22,6 @@ export async function fetchRecords(): Promise<RevenueRecord[]> {
 
 export async function submitRecord(record: Omit<RevenueRecord, 'id'>): Promise<void> {
   const url = getScriptUrl();
-  if (!url) throw new Error('請先設定 Google Apps Script 網址');
 
   const res = await fetch(url, {
     method: 'POST',
