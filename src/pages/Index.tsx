@@ -72,7 +72,7 @@ const Index = () => {
             </TabsTrigger>
             <TabsTrigger value="revenue-records" className="text-xs font-medium gap-1">
               <FileText className="h-3.5 w-3.5" />
-              <span>收入表</span>
+              <span>收入紀錄</span>
             </TabsTrigger>
             <TabsTrigger value="expense-entry" className="text-xs font-medium gap-1">
               <MinusCircle className="h-3.5 w-3.5" />
