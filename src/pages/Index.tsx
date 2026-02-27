@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import DataEntryForm from '@/components/DataEntryForm';
 import RecordsTable from '@/components/RecordsTable';
-import SetupDialog from '@/components/SetupDialog';
+
 import StaffLogin from '@/components/StaffLogin';
 import { useStaff } from '@/contexts/StaffContext';
 import { type RevenueRecord } from '@/types/record';
@@ -46,7 +46,6 @@ const Index = () => {
             </div>
           </div>
           <div className="flex items-center gap-1.5">
-            <SetupDialog onSetup={() => setRefreshKey((k) => k + 1)} />
             <Button variant="ghost" size="icon" onClick={logout} className="h-9 w-9" title="登出">
               <LogOut className="h-4 w-4" />
             </Button>
