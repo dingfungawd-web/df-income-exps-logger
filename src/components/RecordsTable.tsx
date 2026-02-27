@@ -52,6 +52,19 @@ const RecordsTable = ({ onEdit, refreshKey }: RecordsTableProps) => {
 
   const filtered = records.filter((r) => {
     if (r.staff !== staffName) return false;
+
+    // Only show records within the last 14 days
+    try {
+      const recordDate = parseISO(r.date);
+      const fourteenDaysAgo = new Date();
+      fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+      fourteenDaysAgo.setHours(0, 0, 0, 0);
+      if (recordDate < fourteenDaysAgo) return false;
+    } catch {
+      // If date parsing fails, exclude the record
+      return false;
+    }
+
     if (filterDept !== 'all' && r.department !== filterDept) return false;
     if (filterPayment !== 'all' && r.paymentMethod !== filterPayment) return false;
     if (searchTerm) {
