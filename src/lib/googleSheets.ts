@@ -172,7 +172,7 @@ function getSheet(name) {
   if (!sheet) {
     sheet = ss.insertSheet(name);
     if (name === '收入') {
-      sheet.appendRow(['ID', '日期', '部門', '金額', '收款方式', '同事', '已交數', '交數日期']);
+      sheet.appendRow(['ID', 'Case ID', '日期', '部門', '收入類別', '金額', '收款方式', '同事', '已交數', '交數日期']);
     } else if (name === '支出') {
       sheet.appendRow(['ID', '日期', '部門', '同事', '支出類別', '金額', '已Claim', 'Claim日期', 'Claim金額']);
     } else if (name === '用戶') {
@@ -197,13 +197,15 @@ function doGet(e) {
       if (data[i][0] === '') continue;
       records.push({
         id: data[i][0],
-        date: data[i][1],
-        department: data[i][2],
-        amount: data[i][3],
-        paymentMethod: data[i][4],
-        staff: data[i][5] || '',
-        handed: data[i][6] === true || data[i][6] === 'TRUE' || data[i][6] === 'true',
-        handoverDate: data[i][7] || ''
+        caseId: data[i][1] || '',
+        date: data[i][2],
+        department: data[i][3],
+        category: data[i][4] || '',
+        amount: data[i][5],
+        paymentMethod: data[i][6],
+        staff: data[i][7] || '',
+        handed: data[i][8] === true || data[i][8] === 'TRUE' || data[i][8] === 'true',
+        handoverDate: data[i][9] || ''
       });
     }
     return ContentService.createTextOutput(JSON.stringify({ records: records }))
@@ -292,7 +294,7 @@ function doPost(e) {
     var sheet = getSheet('收入');
     var id = Utilities.getUuid();
     var needHandover = (data.paymentMethod === '現金' || data.paymentMethod === '支票');
-    sheet.appendRow([id, data.date, data.department, data.amount, data.paymentMethod, data.staff, needHandover ? false : '', needHandover ? '' : '']);
+    sheet.appendRow([id, data.caseId || '', data.date, data.department, data.category || '', data.amount, data.paymentMethod, data.staff, needHandover ? false : '', needHandover ? '' : '']);
     return ContentService.createTextOutput(JSON.stringify({ success: true, id: id }))
       .setMimeType(ContentService.MimeType.JSON);
   }
@@ -302,11 +304,13 @@ function doPost(e) {
     var allData = sheet.getDataRange().getValues();
     for (var i = 1; i < allData.length; i++) {
       if (allData[i][0] === data.id) {
-        sheet.getRange(i + 1, 2).setValue(data.date);
-        sheet.getRange(i + 1, 3).setValue(data.department);
-        sheet.getRange(i + 1, 4).setValue(data.amount);
-        sheet.getRange(i + 1, 5).setValue(data.paymentMethod);
-        sheet.getRange(i + 1, 6).setValue(data.staff);
+        sheet.getRange(i + 1, 2).setValue(data.caseId || '');
+        sheet.getRange(i + 1, 3).setValue(data.date);
+        sheet.getRange(i + 1, 4).setValue(data.department);
+        sheet.getRange(i + 1, 5).setValue(data.category || '');
+        sheet.getRange(i + 1, 6).setValue(data.amount);
+        sheet.getRange(i + 1, 7).setValue(data.paymentMethod);
+        sheet.getRange(i + 1, 8).setValue(data.staff);
         break;
       }
     }
@@ -373,11 +377,11 @@ function doPost(e) {
     var allData = revSheet.getDataRange().getValues();
     for (var i = 1; i < allData.length; i++) {
       if (revenueIds.indexOf(allData[i][0]) > -1) {
-        revSheet.getRange(i + 1, 7).setValue(true);
-        revSheet.getRange(i + 1, 8).setValue(hoDate);
+        revSheet.getRange(i + 1, 9).setValue(true);
+        revSheet.getRange(i + 1, 10).setValue(hoDate);
         // 每筆收入獨立寫入交數記錄
         var hoId = Utilities.getUuid();
-        hoSheet.appendRow([hoId, data.staff, hoDate, allData[i][3], allData[i][0]]);
+        hoSheet.appendRow([hoId, data.staff, hoDate, allData[i][5], allData[i][0]]);
       }
     }
 

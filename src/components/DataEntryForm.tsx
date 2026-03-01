@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
-import { DEPARTMENTS, PAYMENT_METHODS, type Department, type PaymentMethod, type RevenueRecord } from '@/types/record';
+import { DEPARTMENTS, PAYMENT_METHODS, REVENUE_CATEGORIES, type Department, type PaymentMethod, type RevenueCategory, type RevenueRecord } from '@/types/record';
 import { submitRecord, updateRecord } from '@/lib/googleSheets';
 import { useToast } from '@/hooks/use-toast';
 
@@ -25,7 +25,9 @@ const DataEntryForm = ({ editingRecord, onComplete, onCancelEdit }: DataEntryFor
   const [date, setDate] = useState<Date | undefined>(
     editingRecord ? new Date(editingRecord.date) : new Date()
   );
+  const [caseId, setCaseId] = useState(editingRecord?.caseId?.replace(/^DF/, '') || '');
   const [department, setDepartment] = useState<Department | ''>(editingRecord?.department || '');
+  const [category, setCategory] = useState<RevenueCategory | ''>(editingRecord?.category || '');
   const [amount, setAmount] = useState(editingRecord?.amount?.toString() || '');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | ''>(editingRecord?.paymentMethod || '');
   const [loading, setLoading] = useState(false);
@@ -33,8 +35,13 @@ const DataEntryForm = ({ editingRecord, onComplete, onCancelEdit }: DataEntryFor
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!date || !department || !amount || !paymentMethod) {
+    if (!date || !caseId || !department || !category || !amount || !paymentMethod) {
       toast({ title: '請填寫所有欄位', variant: 'destructive' });
+      return;
+    }
+
+    if (caseId.length !== 7 || !/^\d{7}$/.test(caseId)) {
+      toast({ title: 'Case ID 必須為7位數字', variant: 'destructive' });
       return;
     }
 
@@ -47,8 +54,10 @@ const DataEntryForm = ({ editingRecord, onComplete, onCancelEdit }: DataEntryFor
     setLoading(true);
     try {
       const record = {
+        caseId: `DF${caseId}`,
         date: format(date, 'yyyy-MM-dd'),
         department: department as Department,
+        category: category as RevenueCategory,
         amount: parsedAmount,
         paymentMethod: paymentMethod as PaymentMethod,
         staff: staffName,
@@ -68,7 +77,9 @@ const DataEntryForm = ({ editingRecord, onComplete, onCancelEdit }: DataEntryFor
       setTimeout(() => {
         setSuccess(false);
         if (!editingRecord) {
+          setCaseId('');
           setAmount('');
+          setCategory('');
           setPaymentMethod('');
         }
         onComplete();
@@ -104,6 +115,23 @@ const DataEntryForm = ({ editingRecord, onComplete, onCancelEdit }: DataEntryFor
         </Popover>
       </div>
 
+      {/* Case ID */}
+      <div className="space-y-2">
+        <Label className="text-sm font-medium text-foreground">Case ID</Label>
+        <div className="relative">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold">DF</span>
+          <Input
+            type="text"
+            inputMode="numeric"
+            maxLength={7}
+            value={caseId}
+            onChange={(e) => setCaseId(e.target.value.replace(/\D/g, '').slice(0, 7))}
+            placeholder="0000000"
+            className="pl-10 h-11 text-base tracking-wider"
+          />
+        </div>
+      </div>
+
       {/* Department */}
       <div className="space-y-2">
         <Label className="text-sm font-medium text-foreground">部門</Label>
@@ -114,6 +142,21 @@ const DataEntryForm = ({ editingRecord, onComplete, onCancelEdit }: DataEntryFor
           <SelectContent>
             {DEPARTMENTS.map((d) => (
               <SelectItem key={d} value={d}>{d}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Revenue Category */}
+      <div className="space-y-2">
+        <Label className="text-sm font-medium text-foreground">收入類別</Label>
+        <Select value={category} onValueChange={(v) => setCategory(v as RevenueCategory)}>
+          <SelectTrigger className="h-11">
+            <SelectValue placeholder="選擇類別" />
+          </SelectTrigger>
+          <SelectContent>
+            {REVENUE_CATEGORIES.map((c) => (
+              <SelectItem key={c} value={c}>{c}</SelectItem>
             ))}
           </SelectContent>
         </Select>

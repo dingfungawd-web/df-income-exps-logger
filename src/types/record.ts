@@ -4,10 +4,14 @@ export type PaymentMethod = '現金' | '支票' | '轉數快' | '微信支付' |
 
 export type ExpenseCategory = '交通費' | '材料費' | '餐飲費' | '工具費' | '雜項';
 
+export type RevenueCategory = '訂金' | '餘款';
+
 export interface RevenueRecord {
   id: string;
+  caseId: string;
   date: string;
   department: Department;
+  category: RevenueCategory;
   amount: number;
   paymentMethod: PaymentMethod;
   staff: string;
@@ -57,3 +61,5 @@ export const PAYMENT_METHODS: PaymentMethod[] = [
 export const EXPENSE_CATEGORIES: ExpenseCategory[] = [
   '交通費', '材料費', '餐飲費', '工具費', '雜項'
 ];
+
+export const REVENUE_CATEGORIES: RevenueCategory[] = ['訂金', '餘款'];

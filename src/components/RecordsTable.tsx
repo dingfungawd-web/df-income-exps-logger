@@ -72,6 +72,7 @@ const RecordsTable = ({ onEdit, refreshKey }: RecordsTableProps) => {
       const term = searchTerm.toLowerCase();
       return (
         r.date.includes(term) ||
+        r.caseId?.toLowerCase().includes(term) ||
         r.department.includes(term) ||
         r.amount.toString().includes(term) ||
         r.paymentMethod.toLowerCase().includes(term)
@@ -147,8 +148,10 @@ const RecordsTable = ({ onEdit, refreshKey }: RecordsTableProps) => {
             <TableHeader>
               <TableRow className="bg-muted/50">
                 <TableHead className="font-semibold">日期</TableHead>
+                <TableHead className="font-semibold">Case ID</TableHead>
                 {isAdmin && <TableHead className="font-semibold">同事</TableHead>}
                 <TableHead className="font-semibold">部門</TableHead>
+                <TableHead className="font-semibold">類別</TableHead>
                 <TableHead className="font-semibold text-right">金額</TableHead>
                 <TableHead className="font-semibold">收款方式</TableHead>
                 <TableHead className="font-semibold">交數狀態</TableHead>
@@ -167,10 +170,16 @@ const RecordsTable = ({ onEdit, refreshKey }: RecordsTableProps) => {
                       }
                     })()}
                   </TableCell>
+                  <TableCell className="font-mono text-xs">{record.caseId || '—'}</TableCell>
                   {isAdmin && <TableCell>{record.staff}</TableCell>}
                   <TableCell>
                     <Badge variant="secondary" className="font-normal">
                       {record.department}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="font-normal">
+                      {record.category || '—'}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right font-semibold tabular-nums text-sm">
