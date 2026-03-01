@@ -9,7 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { type ExpenseRecord, type ClaimRecord, type StaffUser, type RevenueRecord, type HandoverRecord } from '@/types/record';
-import { fetchExpenses, fetchClaimHistory, fetchAllUsers, claimExpenses, deleteUser, fetchRecords, confirmHandover, fetchHandoverHistory } from '@/lib/googleSheets';
+import { fetchExpenses, fetchClaimHistory, fetchAllUsers, claimExpenses, deleteUser, fetchRecords, confirmHandover, fetchHandoverHistory, clearAllRecords } from '@/lib/googleSheets';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 
 const AdminClaimPanel = () => {
@@ -418,7 +419,7 @@ const AdminClaimPanel = () => {
             <CardTitle className="text-base">同事帳戶</CardTitle>
             <CardDescription className="text-xs">查看所有已註冊同事的登入資料</CardDescription>
           </CardHeader>
-          <CardContent className="px-4">
+          <CardContent className="px-4 space-y-6">
             {users.length === 0 ? (
               <div className="py-12 text-center text-muted-foreground"><p>暫無已註冊帳戶</p></div>
             ) : (
@@ -461,6 +462,43 @@ const AdminClaimPanel = () => {
                 </Table>
               </div>
             )}
+
+            {/* Clear All Records */}
+            <div className="border-t pt-4">
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" className="w-full">
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    清除所有收入及支出記錄
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>確認清除所有記錄？</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      此操作將會清除 Google Sheet 中的所有收入、支出、Claim 記錄及交數記錄。此操作無法復原！
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>取消</AlertDialogCancel>
+                    <AlertDialogAction
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      onClick={async () => {
+                        try {
+                          await clearAllRecords();
+                          toast({ title: '已成功清除所有收入及支出記錄' });
+                          await loadData();
+                        } catch {
+                          toast({ title: '清除失敗', variant: 'destructive' });
+                        }
+                      }}
+                    >
+                      確認清除
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           </CardContent>
         </Card>
       </TabsContent>

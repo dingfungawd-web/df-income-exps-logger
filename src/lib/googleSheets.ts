@@ -112,6 +112,18 @@ export async function fetchClaimHistory(): Promise<ClaimRecord[]> {
   return data.records || [];
 }
 
+// ─── Clear All Records ───
+export async function clearAllRecords(): Promise<{ success: boolean; message: string }> {
+  const url = getScriptUrl();
+  const res = await fetch(url, {
+    method: 'POST',
+    body: JSON.stringify({ action: 'clearAllRecords' }),
+    redirect: 'follow',
+  });
+  if (!res.ok) throw new Error('清除記錄失敗');
+  return res.json();
+}
+
 // ─── Auth ───
 export async function loginUser(name: string, password: string): Promise<{ success: boolean; message: string }> {
   const url = getScriptUrl();
@@ -440,6 +452,20 @@ function doPost(e) {
       }
     }
     return ContentService.createTextOutput(JSON.stringify({ success: false, message: '找不到此用戶' }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // ─── 清除所有收入及支出記錄 ───
+  if (data.action === 'clearAllRecords') {
+    var sheets = ['收入', '支出', 'Claim記錄', '交數記錄'];
+    for (var s = 0; s < sheets.length; s++) {
+      var sheet = getSheet(sheets[s]);
+      var lastRow = sheet.getLastRow();
+      if (lastRow > 1) {
+        sheet.deleteRows(2, lastRow - 1);
+      }
+    }
+    return ContentService.createTextOutput(JSON.stringify({ success: true, message: '已清除所有收入及支出記錄' }))
       .setMimeType(ContentService.MimeType.JSON);
   }
 
