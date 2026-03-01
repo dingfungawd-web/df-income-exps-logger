@@ -77,7 +77,9 @@ const DataEntryForm = ({ editingRecord, onComplete, onCancelEdit }: DataEntryFor
       setTimeout(() => {
         setSuccess(false);
         if (!editingRecord) {
+          setCaseId('');
           setAmount('');
+          setCategory('');
           setPaymentMethod('');
         }
         onComplete();
