@@ -37,6 +37,7 @@ export interface ExpenseRecord {
   claimed: boolean;
   claimDate: string;
   claimAmount: number;
+  remarks: string;
 }
 
 export interface StaffUser {
