@@ -3,23 +3,46 @@ import { RevenueRecord, ExpenseRecord, StaffUser, ClaimRecord, HandoverRecord } 
 const SCRIPT_URL_KEY = 'google_apps_script_url';
 const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxnLcrNBqKHBPjWoXSChCUen4OC4KuXW0Xno2KzHf3YBAc5YkUxtZfScGbR-yO9Pd1W/exec';
 
+function normalizeScriptUrl(url: string): string {
+  const trimmed = url.trim();
+  if (!trimmed) return DEFAULT_SCRIPT_URL;
+
+  try {
+    const parsed = new URL(trimmed);
+    parsed.search = '';
+    parsed.hash = '';
+    parsed.pathname = parsed.pathname.replace(/\/+$/, '');
+    return parsed.toString();
+  } catch {
+    return DEFAULT_SCRIPT_URL;
+  }
+}
+
+function buildScriptActionUrl(action: string): string {
+  const parsed = new URL(getScriptUrl());
+  parsed.searchParams.set('action', action);
+  return parsed.toString();
+}
+
 export function getScriptUrl(): string {
   const stored = localStorage.getItem(SCRIPT_URL_KEY);
-  // If stored URL differs from default, clear it to use latest default
-  if (stored && stored !== DEFAULT_SCRIPT_URL) {
-    localStorage.removeItem(SCRIPT_URL_KEY);
+  if (!stored) return DEFAULT_SCRIPT_URL;
+
+  const normalizedStored = normalizeScriptUrl(stored);
+  if (normalizedStored !== stored) {
+    localStorage.setItem(SCRIPT_URL_KEY, normalizedStored);
   }
-  return DEFAULT_SCRIPT_URL;
+
+  return normalizedStored;
 }
 
 export function setScriptUrl(url: string): void {
-  localStorage.setItem(SCRIPT_URL_KEY, url);
+  localStorage.setItem(SCRIPT_URL_KEY, normalizeScriptUrl(url));
 }
 
 // ─── Revenue ───
 export async function fetchRecords(): Promise<RevenueRecord[]> {
-  const url = getScriptUrl();
-  const res = await fetch(`${url}?action=getAll`, { redirect: 'follow' });
+  const res = await fetch(buildScriptActionUrl('getAll'), { redirect: 'follow' });
   if (!res.ok) throw new Error('無法讀取資料');
   const data = await res.json();
   return data.records || [];
@@ -47,8 +70,7 @@ export async function updateRecord(record: RevenueRecord): Promise<void> {
 
 // ─── Handover 交數 ───
 export async function fetchHandoverHistory(): Promise<HandoverRecord[]> {
-  const url = getScriptUrl();
-  const res = await fetch(`${url}?action=getHandoverHistory`, { redirect: 'follow' });
+  const res = await fetch(buildScriptActionUrl('getHandoverHistory'), { redirect: 'follow' });
   if (!res.ok) throw new Error('無法讀取交數記錄');
   const data = await res.json();
   return data.records || [];
@@ -66,8 +88,7 @@ export async function confirmHandover(revenueIds: string[], staff: string, total
 
 // ─── Expenses ───
 export async function fetchExpenses(): Promise<ExpenseRecord[]> {
-  const url = getScriptUrl();
-  const res = await fetch(`${url}?action=getExpenses`, { redirect: 'follow' });
+  const res = await fetch(buildScriptActionUrl('getExpenses'), { redirect: 'follow' });
   if (!res.ok) throw new Error('無法讀取支出資料');
   const data = await res.json();
   return data.records || [];
@@ -105,8 +126,7 @@ export async function claimExpenses(expenseIds: string[], staff: string, totalAm
 }
 
 export async function fetchClaimHistory(): Promise<ClaimRecord[]> {
-  const url = getScriptUrl();
-  const res = await fetch(`${url}?action=getClaimHistory`, { redirect: 'follow' });
+  const res = await fetch(buildScriptActionUrl('getClaimHistory'), { redirect: 'follow' });
   if (!res.ok) throw new Error('無法讀取 Claim 記錄');
   const data = await res.json();
   return data.records || [];
@@ -148,8 +168,7 @@ export async function registerUser(name: string, password: string): Promise<{ su
 }
 
 export async function fetchAllUsers(): Promise<StaffUser[]> {
-  const url = getScriptUrl();
-  const res = await fetch(`${url}?action=getAllUsers`, { redirect: 'follow' });
+  const res = await fetch(buildScriptActionUrl('getAllUsers'), { redirect: 'follow' });
   if (!res.ok) throw new Error('無法讀取用戶資料');
   const data = await res.json();
   return data.users || [];
