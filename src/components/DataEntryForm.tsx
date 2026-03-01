@@ -25,7 +25,9 @@ const DataEntryForm = ({ editingRecord, onComplete, onCancelEdit }: DataEntryFor
   const [date, setDate] = useState<Date | undefined>(
     editingRecord ? new Date(editingRecord.date) : new Date()
   );
+  const [caseId, setCaseId] = useState(editingRecord?.caseId?.replace(/^DF/, '') || '');
   const [department, setDepartment] = useState<Department | ''>(editingRecord?.department || '');
+  const [category, setCategory] = useState<RevenueCategory | ''>(editingRecord?.category || '');
   const [amount, setAmount] = useState(editingRecord?.amount?.toString() || '');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | ''>(editingRecord?.paymentMethod || '');
   const [loading, setLoading] = useState(false);
