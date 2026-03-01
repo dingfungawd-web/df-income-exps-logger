@@ -42,8 +42,7 @@ export function setScriptUrl(url: string): void {
 
 // ─── Revenue ───
 export async function fetchRecords(): Promise<RevenueRecord[]> {
-  const url = getScriptUrl();
-  const res = await fetch(`${url}?action=getAll`, { redirect: 'follow' });
+  const res = await fetch(buildScriptActionUrl('getAll'), { redirect: 'follow' });
   if (!res.ok) throw new Error('無法讀取資料');
   const data = await res.json();
   return data.records || [];
