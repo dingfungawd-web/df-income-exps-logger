@@ -304,11 +304,13 @@ function doPost(e) {
     var allData = sheet.getDataRange().getValues();
     for (var i = 1; i < allData.length; i++) {
       if (allData[i][0] === data.id) {
-        sheet.getRange(i + 1, 2).setValue(data.date);
-        sheet.getRange(i + 1, 3).setValue(data.department);
-        sheet.getRange(i + 1, 4).setValue(data.amount);
-        sheet.getRange(i + 1, 5).setValue(data.paymentMethod);
-        sheet.getRange(i + 1, 6).setValue(data.staff);
+        sheet.getRange(i + 1, 2).setValue(data.caseId || '');
+        sheet.getRange(i + 1, 3).setValue(data.date);
+        sheet.getRange(i + 1, 4).setValue(data.department);
+        sheet.getRange(i + 1, 5).setValue(data.category || '');
+        sheet.getRange(i + 1, 6).setValue(data.amount);
+        sheet.getRange(i + 1, 7).setValue(data.paymentMethod);
+        sheet.getRange(i + 1, 8).setValue(data.staff);
         break;
       }
     }
