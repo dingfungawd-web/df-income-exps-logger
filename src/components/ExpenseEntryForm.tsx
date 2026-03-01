@@ -39,6 +39,11 @@ const ExpenseEntryForm = ({ editingRecord, onComplete, onCancelEdit }: ExpenseEn
       return;
     }
 
+    if (category === '其他' && !remarks.trim()) {
+      toast({ title: '請輸入備注', variant: 'destructive' });
+      return;
+    }
+
     const parsedAmount = parseFloat(amount);
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
       toast({ title: '請輸入有效金額', variant: 'destructive' });
