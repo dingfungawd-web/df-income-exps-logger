@@ -112,6 +112,18 @@ export async function fetchClaimHistory(): Promise<ClaimRecord[]> {
   return data.records || [];
 }
 
+// ─── Clear All Records ───
+export async function clearAllRecords(): Promise<{ success: boolean; message: string }> {
+  const url = getScriptUrl();
+  const res = await fetch(url, {
+    method: 'POST',
+    body: JSON.stringify({ action: 'clearAllRecords' }),
+    redirect: 'follow',
+  });
+  if (!res.ok) throw new Error('清除記錄失敗');
+  return res.json();
+}
+
 // ─── Auth ───
 export async function loginUser(name: string, password: string): Promise<{ success: boolean; message: string }> {
   const url = getScriptUrl();
