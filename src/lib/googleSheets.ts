@@ -236,11 +236,11 @@ function doGet(e) {
         department: data[i][2],
         staff: data[i][3],
         category: data[i][4],
-        amount: data[i][5],
-        claimed: data[i][6] === true || data[i][6] === 'TRUE' || data[i][6] === 'true',
-        claimDate: data[i][7] || '',
-        claimAmount: data[i][8] || 0,
-        remarks: data[i][9] || ''
+        remarks: data[i][5] || '',
+        amount: data[i][6],
+        claimed: data[i][7] === true || data[i][7] === 'TRUE' || data[i][7] === 'true',
+        claimDate: data[i][8] || '',
+        claimAmount: data[i][9] || 0
       });
     }
     return ContentService.createTextOutput(JSON.stringify({ records: records }))
