@@ -88,8 +88,7 @@ export async function confirmHandover(revenueIds: string[], staff: string, total
 
 // ─── Expenses ───
 export async function fetchExpenses(): Promise<ExpenseRecord[]> {
-  const url = getScriptUrl();
-  const res = await fetch(`${url}?action=getExpenses`, { redirect: 'follow' });
+  const res = await fetch(buildScriptActionUrl('getExpenses'), { redirect: 'follow' });
   if (!res.ok) throw new Error('無法讀取支出資料');
   const data = await res.json();
   return data.records || [];
