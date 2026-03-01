@@ -349,8 +349,8 @@ function doPost(e) {
         sheet.getRange(i + 1, 3).setValue(data.department);
         sheet.getRange(i + 1, 4).setValue(data.staff);
         sheet.getRange(i + 1, 5).setValue(data.category);
-        sheet.getRange(i + 1, 6).setValue(data.amount);
-        sheet.getRange(i + 1, 10).setValue(data.remarks || '');
+        sheet.getRange(i + 1, 6).setValue(data.remarks || '');
+        sheet.getRange(i + 1, 7).setValue(data.amount);
         break;
       }
     }
