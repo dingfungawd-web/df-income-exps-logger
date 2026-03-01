@@ -28,6 +28,7 @@ const ExpenseEntryForm = ({ editingRecord, onComplete, onCancelEdit }: ExpenseEn
   const [department, setDepartment] = useState<Department | ''>(editingRecord?.department || '');
   const [category, setCategory] = useState<ExpenseCategory | ''>(editingRecord?.category || '');
   const [amount, setAmount] = useState(editingRecord?.amount?.toString() || '');
+  const [remarks, setRemarks] = useState(editingRecord?.remarks || '');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
