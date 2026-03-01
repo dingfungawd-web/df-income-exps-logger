@@ -250,7 +250,7 @@ const AdminClaimPanel = () => {
                         <TableCell>{rev.staff}</TableCell>
                         <TableCell><Badge variant="outline">{rev.paymentMethod}</Badge></TableCell>
                         <TableCell><Badge variant="secondary" className="font-normal">{rev.department}</Badge></TableCell>
-                        <TableCell className="text-right font-semibold tabular-nums">${rev.amount.toFixed(2)}</TableCell>
+                        <TableCell className="text-right font-semibold tabular-nums">${Number(rev.amount).toFixed(2)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
