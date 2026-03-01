@@ -377,11 +377,11 @@ function doPost(e) {
     var allData = revSheet.getDataRange().getValues();
     for (var i = 1; i < allData.length; i++) {
       if (revenueIds.indexOf(allData[i][0]) > -1) {
-        revSheet.getRange(i + 1, 7).setValue(true);
-        revSheet.getRange(i + 1, 8).setValue(hoDate);
+        revSheet.getRange(i + 1, 9).setValue(true);
+        revSheet.getRange(i + 1, 10).setValue(hoDate);
         // 每筆收入獨立寫入交數記錄
         var hoId = Utilities.getUuid();
-        hoSheet.appendRow([hoId, data.staff, hoDate, allData[i][3], allData[i][0]]);
+        hoSheet.appendRow([hoId, data.staff, hoDate, allData[i][5], allData[i][0]]);
       }
     }
 
