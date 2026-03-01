@@ -369,9 +369,9 @@ function doPost(e) {
     var allData = expSheet.getDataRange().getValues();
     for (var i = 1; i < allData.length; i++) {
       if (expenseIds.indexOf(allData[i][0]) > -1) {
-        expSheet.getRange(i + 1, 7).setValue(true);
-        expSheet.getRange(i + 1, 8).setValue(claimDate);
-        expSheet.getRange(i + 1, 9).setValue(allData[i][5]);
+        expSheet.getRange(i + 1, 8).setValue(true);
+        expSheet.getRange(i + 1, 9).setValue(claimDate);
+        expSheet.getRange(i + 1, 10).setValue(allData[i][6]);
       }
     }
 
