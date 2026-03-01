@@ -335,7 +335,7 @@ function doPost(e) {
   if (data.action === 'addExpense') {
     var sheet = getSheet('支出');
     var id = Utilities.getUuid();
-    sheet.appendRow([id, data.date, data.department, data.staff, data.category, data.amount, false, '', 0]);
+    sheet.appendRow([id, data.date, data.department, data.staff, data.category, data.amount, false, '', 0, data.remarks || '']);
     return ContentService.createTextOutput(JSON.stringify({ success: true, id: id }))
       .setMimeType(ContentService.MimeType.JSON);
   }
