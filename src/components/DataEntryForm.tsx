@@ -35,8 +35,13 @@ const DataEntryForm = ({ editingRecord, onComplete, onCancelEdit }: DataEntryFor
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!date || !department || !amount || !paymentMethod) {
+    if (!date || !caseId || !department || !category || !amount || !paymentMethod) {
       toast({ title: '請填寫所有欄位', variant: 'destructive' });
+      return;
+    }
+
+    if (caseId.length !== 7 || !/^\d{7}$/.test(caseId)) {
+      toast({ title: 'Case ID 必須為7位數字', variant: 'destructive' });
       return;
     }
 
@@ -49,8 +54,10 @@ const DataEntryForm = ({ editingRecord, onComplete, onCancelEdit }: DataEntryFor
     setLoading(true);
     try {
       const record = {
+        caseId: `DF${caseId}`,
         date: format(date, 'yyyy-MM-dd'),
         department: department as Department,
+        category: category as RevenueCategory,
         amount: parsedAmount,
         paymentMethod: paymentMethod as PaymentMethod,
         staff: staffName,
