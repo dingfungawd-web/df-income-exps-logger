@@ -239,7 +239,8 @@ function doGet(e) {
         amount: data[i][5],
         claimed: data[i][6] === true || data[i][6] === 'TRUE' || data[i][6] === 'true',
         claimDate: data[i][7] || '',
-        claimAmount: data[i][8] || 0
+        claimAmount: data[i][8] || 0,
+        remarks: data[i][9] || ''
       });
     }
     return ContentService.createTextOutput(JSON.stringify({ records: records }))
