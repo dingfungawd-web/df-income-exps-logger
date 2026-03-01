@@ -70,8 +70,7 @@ export async function updateRecord(record: RevenueRecord): Promise<void> {
 
 // ─── Handover 交數 ───
 export async function fetchHandoverHistory(): Promise<HandoverRecord[]> {
-  const url = getScriptUrl();
-  const res = await fetch(`${url}?action=getHandoverHistory`, { redirect: 'follow' });
+  const res = await fetch(buildScriptActionUrl('getHandoverHistory'), { redirect: 'follow' });
   if (!res.ok) throw new Error('無法讀取交數記錄');
   const data = await res.json();
   return data.records || [];
