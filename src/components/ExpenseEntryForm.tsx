@@ -123,6 +123,13 @@ const ExpenseEntryForm = ({ editingRecord, onComplete, onCancelEdit }: ExpenseEn
         </Select>
       </div>
 
+      {category === '其他' && (
+        <div className="space-y-2">
+          <Label className="text-sm font-medium text-foreground">備注</Label>
+          <Input value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder="請輸入備注" className="h-11 text-base" />
+        </div>
+      )}
+
       <div className="space-y-2">
         <Label className="text-sm font-medium text-foreground">金額 (HKD)</Label>
         <div className="relative">
