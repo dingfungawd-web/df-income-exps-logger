@@ -75,6 +75,7 @@ const ExpenseEntryForm = ({ editingRecord, onComplete, onCancelEdit }: ExpenseEn
         if (!editingRecord) {
           setAmount('');
           setCategory('');
+          setRemarks('');
         }
         onComplete();
       }, 1200);
