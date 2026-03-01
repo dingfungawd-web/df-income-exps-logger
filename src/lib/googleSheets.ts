@@ -197,13 +197,15 @@ function doGet(e) {
       if (data[i][0] === '') continue;
       records.push({
         id: data[i][0],
-        date: data[i][1],
-        department: data[i][2],
-        amount: data[i][3],
-        paymentMethod: data[i][4],
-        staff: data[i][5] || '',
-        handed: data[i][6] === true || data[i][6] === 'TRUE' || data[i][6] === 'true',
-        handoverDate: data[i][7] || ''
+        caseId: data[i][1] || '',
+        date: data[i][2],
+        department: data[i][3],
+        category: data[i][4] || '',
+        amount: data[i][5],
+        paymentMethod: data[i][6],
+        staff: data[i][7] || '',
+        handed: data[i][8] === true || data[i][8] === 'TRUE' || data[i][8] === 'true',
+        handoverDate: data[i][9] || ''
       });
     }
     return ContentService.createTextOutput(JSON.stringify({ records: records }))
