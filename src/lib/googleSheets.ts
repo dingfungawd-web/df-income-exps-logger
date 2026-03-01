@@ -172,7 +172,7 @@ function getSheet(name) {
   if (!sheet) {
     sheet = ss.insertSheet(name);
     if (name === '收入') {
-      sheet.appendRow(['ID', '日期', '部門', '金額', '收款方式', '同事', '已交數', '交數日期']);
+      sheet.appendRow(['ID', 'Case ID', '日期', '部門', '收入類別', '金額', '收款方式', '同事', '已交數', '交數日期']);
     } else if (name === '支出') {
       sheet.appendRow(['ID', '日期', '部門', '同事', '支出類別', '金額', '已Claim', 'Claim日期', 'Claim金額']);
     } else if (name === '用戶') {
