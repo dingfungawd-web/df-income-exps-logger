@@ -113,6 +113,23 @@ const DataEntryForm = ({ editingRecord, onComplete, onCancelEdit }: DataEntryFor
         </Popover>
       </div>
 
+      {/* Case ID */}
+      <div className="space-y-2">
+        <Label className="text-sm font-medium text-foreground">Case ID</Label>
+        <div className="relative">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold">DF</span>
+          <Input
+            type="text"
+            inputMode="numeric"
+            maxLength={7}
+            value={caseId}
+            onChange={(e) => setCaseId(e.target.value.replace(/\D/g, '').slice(0, 7))}
+            placeholder="0000000"
+            className="pl-10 h-11 text-base tracking-wider"
+          />
+        </div>
+      </div>
+
       {/* Department */}
       <div className="space-y-2">
         <Label className="text-sm font-medium text-foreground">部門</Label>
@@ -123,6 +140,21 @@ const DataEntryForm = ({ editingRecord, onComplete, onCancelEdit }: DataEntryFor
           <SelectContent>
             {DEPARTMENTS.map((d) => (
               <SelectItem key={d} value={d}>{d}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Revenue Category */}
+      <div className="space-y-2">
+        <Label className="text-sm font-medium text-foreground">收入類別</Label>
+        <Select value={category} onValueChange={(v) => setCategory(v as RevenueCategory)}>
+          <SelectTrigger className="h-11">
+            <SelectValue placeholder="選擇類別" />
+          </SelectTrigger>
+          <SelectContent>
+            {REVENUE_CATEGORIES.map((c) => (
+              <SelectItem key={c} value={c}>{c}</SelectItem>
             ))}
           </SelectContent>
         </Select>

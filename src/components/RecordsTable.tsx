@@ -170,10 +170,16 @@ const RecordsTable = ({ onEdit, refreshKey }: RecordsTableProps) => {
                       }
                     })()}
                   </TableCell>
+                  <TableCell className="font-mono text-xs">{record.caseId || '—'}</TableCell>
                   {isAdmin && <TableCell>{record.staff}</TableCell>}
                   <TableCell>
                     <Badge variant="secondary" className="font-normal">
                       {record.department}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="font-normal">
+                      {record.category || '—'}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right font-semibold tabular-nums text-sm">
