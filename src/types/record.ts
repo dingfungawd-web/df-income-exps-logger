@@ -61,3 +61,5 @@ export const PAYMENT_METHODS: PaymentMethod[] = [
 export const EXPENSE_CATEGORIES: ExpenseCategory[] = [
   '交通費', '材料費', '餐飲費', '工具費', '雜項'
 ];
+
+export const REVENUE_CATEGORIES: RevenueCategory[] = ['訂金', '餘款'];
