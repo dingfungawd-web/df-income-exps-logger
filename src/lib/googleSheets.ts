@@ -3,17 +3,41 @@ import { RevenueRecord, ExpenseRecord, StaffUser, ClaimRecord, HandoverRecord } 
 const SCRIPT_URL_KEY = 'google_apps_script_url';
 const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxnLcrNBqKHBPjWoXSChCUen4OC4KuXW0Xno2KzHf3YBAc5YkUxtZfScGbR-yO9Pd1W/exec';
 
+function normalizeScriptUrl(url: string): string {
+  const trimmed = url.trim();
+  if (!trimmed) return DEFAULT_SCRIPT_URL;
+
+  try {
+    const parsed = new URL(trimmed);
+    parsed.search = '';
+    parsed.hash = '';
+    parsed.pathname = parsed.pathname.replace(/\/+$/, '');
+    return parsed.toString();
+  } catch {
+    return DEFAULT_SCRIPT_URL;
+  }
+}
+
+function buildScriptActionUrl(action: string): string {
+  const parsed = new URL(getScriptUrl());
+  parsed.searchParams.set('action', action);
+  return parsed.toString();
+}
+
 export function getScriptUrl(): string {
   const stored = localStorage.getItem(SCRIPT_URL_KEY);
-  // If stored URL differs from default, clear it to use latest default
-  if (stored && stored !== DEFAULT_SCRIPT_URL) {
-    localStorage.removeItem(SCRIPT_URL_KEY);
+  if (!stored) return DEFAULT_SCRIPT_URL;
+
+  const normalizedStored = normalizeScriptUrl(stored);
+  if (normalizedStored !== stored) {
+    localStorage.setItem(SCRIPT_URL_KEY, normalizedStored);
   }
-  return DEFAULT_SCRIPT_URL;
+
+  return normalizedStored;
 }
 
 export function setScriptUrl(url: string): void {
-  localStorage.setItem(SCRIPT_URL_KEY, url);
+  localStorage.setItem(SCRIPT_URL_KEY, normalizeScriptUrl(url));
 }
 
 // ─── Revenue ───
