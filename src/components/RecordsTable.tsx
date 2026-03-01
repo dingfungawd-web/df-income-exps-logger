@@ -72,6 +72,7 @@ const RecordsTable = ({ onEdit, refreshKey }: RecordsTableProps) => {
       const term = searchTerm.toLowerCase();
       return (
         r.date.includes(term) ||
+        r.caseId?.toLowerCase().includes(term) ||
         r.department.includes(term) ||
         r.amount.toString().includes(term) ||
         r.paymentMethod.toLowerCase().includes(term)
