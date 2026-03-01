@@ -28,6 +28,7 @@ const ExpenseEntryForm = ({ editingRecord, onComplete, onCancelEdit }: ExpenseEn
   const [department, setDepartment] = useState<Department | ''>(editingRecord?.department || '');
   const [category, setCategory] = useState<ExpenseCategory | ''>(editingRecord?.category || '');
   const [amount, setAmount] = useState(editingRecord?.amount?.toString() || '');
+  const [remarks, setRemarks] = useState(editingRecord?.remarks || '');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
@@ -35,6 +36,11 @@ const ExpenseEntryForm = ({ editingRecord, onComplete, onCancelEdit }: ExpenseEn
     e.preventDefault();
     if (!date || !department || !category || !amount) {
       toast({ title: '請填寫所有欄位', variant: 'destructive' });
+      return;
+    }
+
+    if (category === '其他' && !remarks.trim()) {
+      toast({ title: '請輸入備注', variant: 'destructive' });
       return;
     }
 
@@ -52,10 +58,11 @@ const ExpenseEntryForm = ({ editingRecord, onComplete, onCancelEdit }: ExpenseEn
         staff: staffName,
         category: category as ExpenseCategory,
         amount: parsedAmount,
+        remarks: category === '其他' ? remarks.trim() : '',
       };
 
       if (editingRecord) {
-        await updateExpense({ ...record, id: editingRecord.id, claimed: editingRecord.claimed, claimDate: editingRecord.claimDate, claimAmount: editingRecord.claimAmount });
+        await updateExpense({ ...record, id: editingRecord.id, claimed: editingRecord.claimed, claimDate: editingRecord.claimDate, claimAmount: editingRecord.claimAmount, remarks: record.remarks });
         toast({ title: '支出記錄已更新' });
       } else {
         await submitExpense(record);
@@ -68,6 +75,7 @@ const ExpenseEntryForm = ({ editingRecord, onComplete, onCancelEdit }: ExpenseEn
         if (!editingRecord) {
           setAmount('');
           setCategory('');
+          setRemarks('');
         }
         onComplete();
       }, 1200);
@@ -114,6 +122,13 @@ const ExpenseEntryForm = ({ editingRecord, onComplete, onCancelEdit }: ExpenseEn
           </SelectContent>
         </Select>
       </div>
+
+      {category === '其他' && (
+        <div className="space-y-2">
+          <Label className="text-sm font-medium text-foreground">備注</Label>
+          <Input value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder="請輸入備注" className="h-11 text-base" />
+        </div>
+      )}
 
       <div className="space-y-2">
         <Label className="text-sm font-medium text-foreground">金額 (HKD)</Label>

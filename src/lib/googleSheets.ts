@@ -186,7 +186,7 @@ function getSheet(name) {
     if (name === '收入') {
       sheet.appendRow(['ID', 'Case ID', '日期', '部門', '收入類別', '金額', '收款方式', '同事', '已交數', '交數日期']);
     } else if (name === '支出') {
-      sheet.appendRow(['ID', '日期', '部門', '同事', '支出類別', '金額', '已Claim', 'Claim日期', 'Claim金額']);
+      sheet.appendRow(['ID', '日期', '部門', '同事', '支出類別', '金額', '已Claim', 'Claim日期', 'Claim金額', '備注']);
     } else if (name === '用戶') {
       sheet.appendRow(['姓名', '密碼']);
     } else if (name === 'Claim記錄') {
@@ -239,7 +239,8 @@ function doGet(e) {
         amount: data[i][5],
         claimed: data[i][6] === true || data[i][6] === 'TRUE' || data[i][6] === 'true',
         claimDate: data[i][7] || '',
-        claimAmount: data[i][8] || 0
+        claimAmount: data[i][8] || 0,
+        remarks: data[i][9] || ''
       });
     }
     return ContentService.createTextOutput(JSON.stringify({ records: records }))
@@ -334,7 +335,7 @@ function doPost(e) {
   if (data.action === 'addExpense') {
     var sheet = getSheet('支出');
     var id = Utilities.getUuid();
-    sheet.appendRow([id, data.date, data.department, data.staff, data.category, data.amount, false, '', 0]);
+    sheet.appendRow([id, data.date, data.department, data.staff, data.category, data.amount, false, '', 0, data.remarks || '']);
     return ContentService.createTextOutput(JSON.stringify({ success: true, id: id }))
       .setMimeType(ContentService.MimeType.JSON);
   }
@@ -349,6 +350,7 @@ function doPost(e) {
         sheet.getRange(i + 1, 4).setValue(data.staff);
         sheet.getRange(i + 1, 5).setValue(data.category);
         sheet.getRange(i + 1, 6).setValue(data.amount);
+        sheet.getRange(i + 1, 10).setValue(data.remarks || '');
         break;
       }
     }
