@@ -58,6 +58,7 @@ const ExpenseEntryForm = ({ editingRecord, onComplete, onCancelEdit }: ExpenseEn
         staff: staffName,
         category: category as ExpenseCategory,
         amount: parsedAmount,
+        remarks: category === '其他' ? remarks.trim() : '',
       };
 
       if (editingRecord) {
