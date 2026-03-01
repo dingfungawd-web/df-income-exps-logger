@@ -148,8 +148,10 @@ const RecordsTable = ({ onEdit, refreshKey }: RecordsTableProps) => {
             <TableHeader>
               <TableRow className="bg-muted/50">
                 <TableHead className="font-semibold">日期</TableHead>
+                <TableHead className="font-semibold">Case ID</TableHead>
                 {isAdmin && <TableHead className="font-semibold">同事</TableHead>}
                 <TableHead className="font-semibold">部門</TableHead>
+                <TableHead className="font-semibold">類別</TableHead>
                 <TableHead className="font-semibold text-right">金額</TableHead>
                 <TableHead className="font-semibold">收款方式</TableHead>
                 <TableHead className="font-semibold">交數狀態</TableHead>
