@@ -126,8 +126,7 @@ export async function claimExpenses(expenseIds: string[], staff: string, totalAm
 }
 
 export async function fetchClaimHistory(): Promise<ClaimRecord[]> {
-  const url = getScriptUrl();
-  const res = await fetch(`${url}?action=getClaimHistory`, { redirect: 'follow' });
+  const res = await fetch(buildScriptActionUrl('getClaimHistory'), { redirect: 'follow' });
   if (!res.ok) throw new Error('無法讀取 Claim 記錄');
   const data = await res.json();
   return data.records || [];
