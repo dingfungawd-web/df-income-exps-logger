@@ -62,7 +62,7 @@ const ExpenseEntryForm = ({ editingRecord, onComplete, onCancelEdit }: ExpenseEn
       };
 
       if (editingRecord) {
-        await updateExpense({ ...record, id: editingRecord.id, claimed: editingRecord.claimed, claimDate: editingRecord.claimDate, claimAmount: editingRecord.claimAmount });
+        await updateExpense({ ...record, id: editingRecord.id, claimed: editingRecord.claimed, claimDate: editingRecord.claimDate, claimAmount: editingRecord.claimAmount, remarks: record.remarks });
         toast({ title: '支出記錄已更新' });
       } else {
         await submitExpense(record);
