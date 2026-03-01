@@ -168,8 +168,7 @@ export async function registerUser(name: string, password: string): Promise<{ su
 }
 
 export async function fetchAllUsers(): Promise<StaffUser[]> {
-  const url = getScriptUrl();
-  const res = await fetch(`${url}?action=getAllUsers`, { redirect: 'follow' });
+  const res = await fetch(buildScriptActionUrl('getAllUsers'), { redirect: 'follow' });
   if (!res.ok) throw new Error('無法讀取用戶資料');
   const data = await res.json();
   return data.users || [];
