@@ -60,7 +60,7 @@ export const PAYMENT_METHODS: PaymentMethod[] = [
 ];
 
 export const EXPENSE_CATEGORIES: ExpenseCategory[] = [
-  '交通費', '材料費', '餐飲費', '工具費', '雜項'
+  '八達通增值', 'Call車', '月租停車場', '時租停車場', '入油', '貨物順豐運費', '度尺工具', '安裝工具', '文具費用', '貨倉飲品', '其他'
 ];
 
 export const REVENUE_CATEGORIES: RevenueCategory[] = ['訂金', '餘款'];
