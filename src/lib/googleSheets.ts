@@ -126,13 +126,7 @@ export async function submitExpense(record: Omit<ExpenseRecord, 'id' | 'claimed'
 
 export async function updateExpense(record: ExpenseRecord): Promise<void> {
   const action = record.currency === 'RMB' ? 'updateExpenseRMB' : 'updateExpense';
-  const url = getScriptUrl();
-  const res = await fetch(url, {
-    method: 'POST',
-    body: JSON.stringify({ action, ...record }),
-    redirect: 'follow',
-  });
-  if (!res.ok) throw new Error('更新支出失敗');
+  await postToScript({ action, ...record });
 }
 
 // ─── Claim ───
