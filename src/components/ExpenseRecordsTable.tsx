@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { type ExpenseRecord, DEPARTMENTS, EXPENSE_CATEGORIES } from '@/types/record';
+import { type ExpenseRecord, DEPARTMENTS, EXPENSE_CATEGORIES, CURRENCY_SYMBOLS } from '@/types/record';
 import { fetchExpenses } from '@/lib/googleSheets';
 import { useStaff } from '@/contexts/StaffContext';
 import { useToast } from '@/hooks/use-toast';
@@ -62,8 +62,6 @@ const ExpenseRecordsTable = ({ onEdit, refreshKey }: ExpenseRecordsTableProps) =
     return true;
   });
 
-  const totalAmount = filtered.reduce((sum, r) => sum + r.amount, 0);
-  const unclaimedAmount = filtered.filter(r => !r.claimed).reduce((sum, r) => sum + r.amount, 0);
 
   return (
     <div className="space-y-4">
@@ -90,9 +88,11 @@ const ExpenseRecordsTable = ({ onEdit, refreshKey }: ExpenseRecordsTableProps) =
 
       <div className="flex items-center justify-between px-1 flex-wrap gap-2">
         <span className="text-sm text-muted-foreground">共 {filtered.length} 筆</span>
-        <div className="flex gap-4 text-sm">
-          <span className="font-semibold text-foreground">總計: ${totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-          <span className="text-warning font-medium">未Claim: ${unclaimedAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+        <div className="flex gap-4 text-sm flex-wrap">
+          <span className="font-semibold text-foreground">HKD總計: ${filtered.filter(r => r.currency !== 'RMB').reduce((s, r) => s + r.amount, 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+          <span className="font-semibold text-foreground">RMB總計: ¥{filtered.filter(r => r.currency === 'RMB').reduce((s, r) => s + r.amount, 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+          <span className="text-warning font-medium">未Claim(HKD): ${filtered.filter(r => !r.claimed && r.currency !== 'RMB').reduce((s, r) => s + r.amount, 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+          <span className="text-warning font-medium">未Claim(RMB): ¥{filtered.filter(r => !r.claimed && r.currency === 'RMB').reduce((s, r) => s + r.amount, 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
         </div>
       </div>
 
@@ -116,6 +116,7 @@ const ExpenseRecordsTable = ({ onEdit, refreshKey }: ExpenseRecordsTableProps) =
                 <TableHead className="font-semibold">部門</TableHead>
                 <TableHead className="font-semibold">類別</TableHead>
                 <TableHead className="font-semibold text-right">金額</TableHead>
+                <TableHead className="font-semibold">幣種</TableHead>
                 <TableHead className="font-semibold">狀態</TableHead>
                 <TableHead className="font-semibold w-12">修改記錄</TableHead>
               </TableRow>
@@ -130,7 +131,12 @@ const ExpenseRecordsTable = ({ onEdit, refreshKey }: ExpenseRecordsTableProps) =
                   <TableCell><Badge variant="secondary" className="font-normal">{record.department}</Badge></TableCell>
                   <TableCell><Badge variant="outline">{record.category}</Badge></TableCell>
                   <TableCell className="text-right font-semibold tabular-nums text-sm">
-                    ${record.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    {(CURRENCY_SYMBOLS[record.currency] || '$')}{record.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={record.currency === 'RMB' ? 'destructive' : 'secondary'} className="font-normal text-xs">
+                      {record.currency || 'HKD'}
+                    </Badge>
                   </TableCell>
                   <TableCell>
                     {record.claimed ? (

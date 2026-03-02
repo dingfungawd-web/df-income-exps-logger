@@ -6,10 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
-import { DEPARTMENTS, ADMIN_DEPARTMENTS, EXPENSE_CATEGORIES, type Department, type ExpenseCategory, type ExpenseRecord } from '@/types/record';
+import { DEPARTMENTS, ADMIN_DEPARTMENTS, EXPENSE_CATEGORIES, EXPENSE_CURRENCIES, CURRENCY_LABELS, CURRENCY_SYMBOLS, type Department, type ExpenseCategory, type ExpenseCurrency, type ExpenseRecord } from '@/types/record';
 import { submitExpense, updateExpense } from '@/lib/googleSheets';
 import { useToast } from '@/hooks/use-toast';
 
@@ -30,6 +31,7 @@ const ExpenseEntryForm = ({ editingRecord, onComplete, onCancelEdit }: ExpenseEn
   const [category, setCategory] = useState<ExpenseCategory | ''>(editingRecord?.category || '');
   const [amount, setAmount] = useState(editingRecord?.amount?.toString() || '');
   const [remarks, setRemarks] = useState(editingRecord?.remarks || '');
+  const [currency, setCurrency] = useState<ExpenseCurrency>(editingRecord?.currency || 'HKD');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
@@ -60,6 +62,7 @@ const ExpenseEntryForm = ({ editingRecord, onComplete, onCancelEdit }: ExpenseEn
         category: category as ExpenseCategory,
         amount: parsedAmount,
         remarks: category === '其他' ? remarks.trim() : '',
+        currency,
       };
 
       if (editingRecord) {
@@ -89,6 +92,18 @@ const ExpenseEntryForm = ({ editingRecord, onComplete, onCancelEdit }: ExpenseEn
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
+      <div className="space-y-2">
+        <Label className="text-sm font-medium text-foreground">幣種</Label>
+        <RadioGroup value={currency} onValueChange={(v) => setCurrency(v as ExpenseCurrency)} className="flex gap-4">
+          {EXPENSE_CURRENCIES.map((c) => (
+            <div key={c} className="flex items-center gap-2">
+              <RadioGroupItem value={c} id={`currency-${c}`} />
+              <Label htmlFor={`currency-${c}`} className="text-sm cursor-pointer font-normal">{CURRENCY_LABELS[c]}</Label>
+            </div>
+          ))}
+        </RadioGroup>
+      </div>
+
       <div className="space-y-2">
         <Label className="text-sm font-medium text-foreground">日期</Label>
         <Popover>
@@ -132,9 +147,9 @@ const ExpenseEntryForm = ({ editingRecord, onComplete, onCancelEdit }: ExpenseEn
       )}
 
       <div className="space-y-2">
-        <Label className="text-sm font-medium text-foreground">金額 (HKD)</Label>
+        <Label className="text-sm font-medium text-foreground">金額 ({currency === 'RMB' ? 'RMB' : 'HKD'})</Label>
         <div className="relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">$</span>
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">{CURRENCY_SYMBOLS[currency]}</span>
           <Input type="number" step="0.01" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" className="pl-8 h-11 text-base" />
         </div>
       </div>

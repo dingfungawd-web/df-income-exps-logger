@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { type ExpenseRecord, type ClaimRecord, type StaffUser, type RevenueRecord, type HandoverRecord } from '@/types/record';
+import { type ExpenseRecord, type ClaimRecord, type StaffUser, type RevenueRecord, type HandoverRecord, CURRENCY_SYMBOLS } from '@/types/record';
 import { fetchExpenses, fetchClaimHistory, fetchAllUsers, claimExpenses, deleteUser, fetchRecords, confirmHandover, fetchHandoverHistory, clearAllRecords } from '@/lib/googleSheets';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
@@ -94,10 +94,19 @@ const AdminClaimPanel = () => {
       toast({ title: '請只選擇同一位同事的支出進行 Claim', variant: 'destructive' });
       return;
     }
+    // Check all selected have same currency
+    const selectedRecords = unclaimedExpenses.filter(e => ids.includes(e.id));
+    const currencies = new Set(selectedRecords.map(e => e.currency || 'HKD'));
+    if (currencies.size > 1) {
+      toast({ title: '請只選擇同一幣種的支出進行 Claim', variant: 'destructive' });
+      return;
+    }
+    const claimCurrency = selectedRecords[0]?.currency || 'HKD';
     setClaimLoading(true);
     try {
-      await claimExpenses(ids, staffToClaim, selectedTotal);
-      toast({ title: `已成功 Claim $${selectedTotal.toFixed(2)} 給 ${staffToClaim}` });
+      await claimExpenses(ids, staffToClaim, selectedTotal, claimCurrency);
+      const symbol = CURRENCY_SYMBOLS[claimCurrency];
+      toast({ title: `已成功 Claim ${symbol}${selectedTotal.toFixed(2)} 給 ${staffToClaim}` });
       setSelectedIds(new Set());
       await loadData();
     } catch (err) {
@@ -323,7 +332,7 @@ const AdminClaimPanel = () => {
                         </TableCell>
                         <TableCell>{exp.staff}</TableCell>
                         <TableCell><Badge variant="outline">{exp.category}</Badge></TableCell>
-                        <TableCell className="text-right font-semibold tabular-nums">${Number(exp.amount).toFixed(2)}</TableCell>
+                        <TableCell className="text-right font-semibold tabular-nums">{CURRENCY_SYMBOLS[exp.currency || 'HKD']}{Number(exp.amount).toFixed(2)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

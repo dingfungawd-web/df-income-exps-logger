@@ -88,38 +88,52 @@ export async function confirmHandover(revenueIds: string[], staff: string, total
 
 // ─── Expenses ───
 export async function fetchExpenses(): Promise<ExpenseRecord[]> {
-  const res = await fetch(buildScriptActionUrl('getExpenses'), { redirect: 'follow' });
-  if (!res.ok) throw new Error('無法讀取支出資料');
-  const data = await res.json();
-  return data.records || [];
+  const [hkdRes, rmbRes] = await Promise.all([
+    fetch(buildScriptActionUrl('getExpenses'), { redirect: 'follow' }),
+    fetch(buildScriptActionUrl('getExpensesRMB'), { redirect: 'follow' }),
+  ]);
+  if (!hkdRes.ok) throw new Error('無法讀取支出資料');
+  const hkdData = await hkdRes.json();
+  const hkdRecords: ExpenseRecord[] = (hkdData.records || []).map((r: any) => ({ ...r, currency: 'HKD' as const }));
+
+  let rmbRecords: ExpenseRecord[] = [];
+  if (rmbRes.ok) {
+    const rmbData = await rmbRes.json();
+    rmbRecords = (rmbData.records || []).map((r: any) => ({ ...r, currency: 'RMB' as const }));
+  }
+
+  return [...hkdRecords, ...rmbRecords];
 }
 
 export async function submitExpense(record: Omit<ExpenseRecord, 'id' | 'claimed' | 'claimDate' | 'claimAmount'>): Promise<void> {
+  const action = record.currency === 'RMB' ? 'addExpenseRMB' : 'addExpense';
   const url = getScriptUrl();
   const res = await fetch(url, {
     method: 'POST',
-    body: JSON.stringify({ action: 'addExpense', ...record }),
+    body: JSON.stringify({ action, ...record }),
     redirect: 'follow',
   });
   if (!res.ok) throw new Error('提交支出失敗');
 }
 
 export async function updateExpense(record: ExpenseRecord): Promise<void> {
+  const action = record.currency === 'RMB' ? 'updateExpenseRMB' : 'updateExpense';
   const url = getScriptUrl();
   const res = await fetch(url, {
     method: 'POST',
-    body: JSON.stringify({ action: 'updateExpense', ...record }),
+    body: JSON.stringify({ action, ...record }),
     redirect: 'follow',
   });
   if (!res.ok) throw new Error('更新支出失敗');
 }
 
 // ─── Claim ───
-export async function claimExpenses(expenseIds: string[], staff: string, totalAmount: number): Promise<void> {
+export async function claimExpenses(expenseIds: string[], staff: string, totalAmount: number, currency: 'HKD' | 'RMB' = 'HKD'): Promise<void> {
+  const action = currency === 'RMB' ? 'claimExpensesRMB' : 'claimExpenses';
   const url = getScriptUrl();
   const res = await fetch(url, {
     method: 'POST',
-    body: JSON.stringify({ action: 'claimExpenses', expenseIds, staff, totalAmount }),
+    body: JSON.stringify({ action, expenseIds, staff, totalAmount }),
     redirect: 'follow',
   });
   if (!res.ok) throw new Error('Claim 失敗');
@@ -191,11 +205,12 @@ export const APPS_SCRIPT_CODE = `
 // 存取權限設為「所有人」
 //
 // 需要以下 Sheet 分頁（首次請求時自動建立）:
-// 1. "收入"       - ID, 日期, 部門, 金額, 收款方式, 同事, 已交數, 交數日期
-// 2. "支出"       - ID, 日期, 部門, 同事, 支出類別, 金額, 已Claim, Claim日期, Claim金額
-// 3. "用戶"       - 姓名, 密碼
-// 4. "Claim記錄"  - ID, 同事, Claim日期, 總金額, 支出ID列表
-// 5. "交數記錄"   - ID, 同事, 交數日期, 總金額, 收入ID列表
+// 1. "收入"           - ID, Case ID, 日期, 部門, 收入類別, 金額, 收款方式, 同事, 已交數, 交數日期
+// 2. "支出"           - ID, 日期, 部門, 同事, 支出類別, 支出備註, 金額, 已Claim, Claim日期, Claim金額
+// 3. "支出(人民幣)"   - ID, 日期, 部門, 同事, 支出類別, 支出備註, 金額, 已Claim, Claim日期, Claim金額
+// 4. "用戶"           - 姓名, 密碼
+// 5. "Claim記錄"      - ID, 同事, Claim日期, 總金額, 支出ID列表
+// 6. "交數記錄"       - ID, 同事, 交數日期, 金額, 收入ID
 
 function getSheet(name) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -204,7 +219,7 @@ function getSheet(name) {
     sheet = ss.insertSheet(name);
     if (name === '收入') {
       sheet.appendRow(['ID', 'Case ID', '日期', '部門', '收入類別', '金額', '收款方式', '同事', '已交數', '交數日期']);
-    } else if (name === '支出') {
+    } else if (name === '支出' || name === '支出(人民幣)') {
       sheet.appendRow(['ID', '日期', '部門', '同事', '支出類別', '支出備註', '金額', '已Claim', 'Claim日期', 'Claim金額']);
     } else if (name === '用戶') {
       sheet.appendRow(['姓名', '密碼']);
@@ -215,6 +230,29 @@ function getSheet(name) {
     }
   }
   return sheet;
+}
+
+// Helper to read expense records from a sheet
+function readExpenseRecords(sheetName) {
+  var sheet = getSheet(sheetName);
+  var data = sheet.getDataRange().getValues();
+  var records = [];
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0] === '') continue;
+    records.push({
+      id: data[i][0],
+      date: data[i][1],
+      department: data[i][2],
+      staff: data[i][3],
+      category: data[i][4],
+      remarks: data[i][5] || '',
+      amount: data[i][6],
+      claimed: data[i][7] === true || data[i][7] === 'TRUE' || data[i][7] === 'true',
+      claimDate: data[i][8] || '',
+      claimAmount: data[i][9] || 0
+    });
+  }
+  return records;
 }
 
 function doGet(e) {
@@ -244,25 +282,12 @@ function doGet(e) {
   }
 
   if (action === 'getExpenses') {
-    var sheet = getSheet('支出');
-    var data = sheet.getDataRange().getValues();
-    var records = [];
-    for (var i = 1; i < data.length; i++) {
-      if (data[i][0] === '') continue;
-      records.push({
-        id: data[i][0],
-        date: data[i][1],
-        department: data[i][2],
-        staff: data[i][3],
-        category: data[i][4],
-        remarks: data[i][5] || '',
-        amount: data[i][6],
-        claimed: data[i][7] === true || data[i][7] === 'TRUE' || data[i][7] === 'true',
-        claimDate: data[i][8] || '',
-        claimAmount: data[i][9] || 0
-      });
-    }
-    return ContentService.createTextOutput(JSON.stringify({ records: records }))
+    return ContentService.createTextOutput(JSON.stringify({ records: readExpenseRecords('支出') }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  if (action === 'getExpensesRMB') {
+    return ContentService.createTextOutput(JSON.stringify({ records: readExpenseRecords('支出(人民幣)') }))
       .setMimeType(ContentService.MimeType.JSON);
   }
 
@@ -351,7 +376,7 @@ function doPost(e) {
       .setMimeType(ContentService.MimeType.JSON);
   }
 
-  // ─── 支出 ───
+  // ─── 支出 (港幣) ───
   if (data.action === 'addExpense') {
     var sheet = getSheet('支出');
     var id = Utilities.getUuid();
@@ -383,9 +408,64 @@ function doPost(e) {
       .setMimeType(ContentService.MimeType.JSON);
   }
 
-  // ─── Claim 報銷 ───
+  // ─── 支出 (人民幣) ───
+  if (data.action === 'addExpenseRMB') {
+    var sheet = getSheet('支出(人民幣)');
+    var id = Utilities.getUuid();
+    var isAdmin = (data.staff === 'admin');
+    if (isAdmin) {
+      sheet.appendRow([id, data.date, data.department, data.staff, data.category, data.remarks || '', data.amount, '', '', '']);
+    } else {
+      sheet.appendRow([id, data.date, data.department, data.staff, data.category, data.remarks || '', data.amount, false, '', 0]);
+    }
+    return ContentService.createTextOutput(JSON.stringify({ success: true, id: id }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  if (data.action === 'updateExpenseRMB') {
+    var sheet = getSheet('支出(人民幣)');
+    var allData = sheet.getDataRange().getValues();
+    for (var i = 1; i < allData.length; i++) {
+      if (allData[i][0] === data.id) {
+        sheet.getRange(i + 1, 2).setValue(data.date);
+        sheet.getRange(i + 1, 3).setValue(data.department);
+        sheet.getRange(i + 1, 4).setValue(data.staff);
+        sheet.getRange(i + 1, 5).setValue(data.category);
+        sheet.getRange(i + 1, 6).setValue(data.remarks || '');
+        sheet.getRange(i + 1, 7).setValue(data.amount);
+        break;
+      }
+    }
+    return ContentService.createTextOutput(JSON.stringify({ success: true }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // ─── Claim 報銷 (港幣) ───
   if (data.action === 'claimExpenses') {
     var expSheet = getSheet('支出');
+    var claimSheet = getSheet('Claim記錄');
+    var claimId = Utilities.getUuid();
+    var claimDate = Utilities.formatDate(new Date(), 'Asia/Hong_Kong', 'yyyy-MM-dd');
+    var expenseIds = data.expenseIds;
+
+    var allData = expSheet.getDataRange().getValues();
+    for (var i = 1; i < allData.length; i++) {
+      if (expenseIds.indexOf(allData[i][0]) > -1) {
+        expSheet.getRange(i + 1, 8).setValue(true);
+        expSheet.getRange(i + 1, 9).setValue(claimDate);
+        expSheet.getRange(i + 1, 10).setValue(allData[i][6]);
+      }
+    }
+
+    claimSheet.appendRow([claimId, data.staff, claimDate, data.totalAmount, expenseIds.join(',')]);
+
+    return ContentService.createTextOutput(JSON.stringify({ success: true, id: claimId }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // ─── Claim 報銷 (人民幣) ───
+  if (data.action === 'claimExpensesRMB') {
+    var expSheet = getSheet('支出(人民幣)');
     var claimSheet = getSheet('Claim記錄');
     var claimId = Utilities.getUuid();
     var claimDate = Utilities.formatDate(new Date(), 'Asia/Hong_Kong', 'yyyy-MM-dd');
@@ -484,7 +564,7 @@ function doPost(e) {
 
   // ─── 清除所有收入及支出記錄 ───
   if (data.action === 'clearAllRecords') {
-    var sheets = ['收入', '支出', 'Claim記錄', '交數記錄'];
+    var sheets = ['收入', '支出', '支出(人民幣)', 'Claim記錄', '交數記錄'];
     for (var s = 0; s < sheets.length; s++) {
       var sheet = getSheet(sheets[s]);
       var lastRow = sheet.getLastRow();
