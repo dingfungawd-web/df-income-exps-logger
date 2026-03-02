@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
-import { DEPARTMENTS, PAYMENT_METHODS, REVENUE_CATEGORIES, type Department, type PaymentMethod, type RevenueCategory, type RevenueRecord } from '@/types/record';
+import { DEPARTMENTS, ADMIN_DEPARTMENTS, PAYMENT_METHODS, REVENUE_CATEGORIES, type Department, type PaymentMethod, type RevenueCategory, type RevenueRecord } from '@/types/record';
 import { submitRecord, updateRecord } from '@/lib/googleSheets';
 import { useToast } from '@/hooks/use-toast';
 
@@ -20,7 +20,8 @@ interface DataEntryFormProps {
 }
 
 const DataEntryForm = ({ editingRecord, onComplete, onCancelEdit }: DataEntryFormProps) => {
-  const { staffName } = useStaff();
+  const { staffName, isAdmin } = useStaff();
+  const departmentOptions = isAdmin ? ADMIN_DEPARTMENTS : DEPARTMENTS;
   const { toast } = useToast();
   const [date, setDate] = useState<Date | undefined>(
     editingRecord ? new Date(editingRecord.date) : new Date()
@@ -140,7 +141,7 @@ const DataEntryForm = ({ editingRecord, onComplete, onCancelEdit }: DataEntryFor
             <SelectValue placeholder="選擇部門" />
           </SelectTrigger>
           <SelectContent>
-            {DEPARTMENTS.map((d) => (
+            {departmentOptions.map((d) => (
               <SelectItem key={d} value={d}>{d}</SelectItem>
             ))}
           </SelectContent>

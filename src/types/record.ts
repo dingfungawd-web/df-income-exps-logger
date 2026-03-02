@@ -1,4 +1,4 @@
-export type Department = '度尺銷售部' | '安裝部';
+export type Department = '度尺銷售部' | '安裝部' | '老闆';
 
 export type PaymentMethod = '現金' | '支票' | '轉數快' | '微信支付' | '支付寶' | 'PayMe';
 
@@ -54,6 +54,7 @@ export interface ClaimRecord {
 }
 
 export const DEPARTMENTS: Department[] = ['度尺銷售部', '安裝部'];
+export const ADMIN_DEPARTMENTS: Department[] = ['度尺銷售部', '安裝部', '老闆'];
 
 export const PAYMENT_METHODS: PaymentMethod[] = [
   '現金', '支票', '轉數快', '微信支付', '支付寶', 'PayMe'
