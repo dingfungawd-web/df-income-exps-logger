@@ -68,6 +68,12 @@ const AdminClaimPanel = () => {
       .reduce((sum, e) => sum + e.amount, 0);
   }, [unclaimedExpenses, selectedIds]);
 
+  const selectedCurrency = useMemo(() => {
+    const selected = unclaimedExpenses.filter(e => selectedIds.has(e.id));
+    if (selected.length === 0) return 'HKD';
+    return selected[0]?.currency || 'HKD';
+  }, [unclaimedExpenses, selectedIds]);
+
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => {
       const next = new Set(prev);
@@ -297,7 +303,7 @@ const AdminClaimPanel = () => {
 
             {selectedIds.size > 0 && (
               <div className="flex items-center justify-between p-3 rounded-lg bg-primary/5 border border-primary/20">
-                <span className="text-sm font-medium">已選 {selectedIds.size} 筆，總計: <span className="text-primary font-bold">${selectedTotal.toFixed(2)}</span></span>
+                <span className="text-sm font-medium">已選 {selectedIds.size} 筆，總計: <span className="text-primary font-bold">{CURRENCY_SYMBOLS[selectedCurrency]}{selectedTotal.toFixed(2)}</span></span>
                 <Button onClick={handleClaim} disabled={claimLoading} size="sm">
                   {claimLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   <CheckCircle2 className="mr-1.5 h-4 w-4" />確認 Claim
@@ -319,6 +325,7 @@ const AdminClaimPanel = () => {
                       <TableHead className="font-semibold">同事</TableHead>
                       <TableHead className="font-semibold">類別</TableHead>
                       <TableHead className="font-semibold text-right">金額</TableHead>
+                      <TableHead className="font-semibold">幣種</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -333,6 +340,11 @@ const AdminClaimPanel = () => {
                         <TableCell>{exp.staff}</TableCell>
                         <TableCell><Badge variant="outline">{exp.category}</Badge></TableCell>
                         <TableCell className="text-right font-semibold tabular-nums">{CURRENCY_SYMBOLS[exp.currency || 'HKD']}{Number(exp.amount).toFixed(2)}</TableCell>
+                        <TableCell>
+                          <Badge variant={exp.currency === 'RMB' ? 'destructive' : 'secondary'} className="font-normal text-xs">
+                            {exp.currency || 'HKD'}
+                          </Badge>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -399,6 +411,7 @@ const AdminClaimPanel = () => {
                       <TableHead className="font-semibold">日期</TableHead>
                       <TableHead className="font-semibold">同事</TableHead>
                       <TableHead className="font-semibold text-right">金額</TableHead>
+                      <TableHead className="font-semibold">幣種</TableHead>
                       <TableHead className="font-semibold">項目數</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -409,7 +422,12 @@ const AdminClaimPanel = () => {
                           {(() => { try { return format(parseISO(claim.claimDate), 'yyyy/MM/dd'); } catch { return claim.claimDate; } })()}
                         </TableCell>
                         <TableCell>{claim.staff}</TableCell>
-                        <TableCell className="text-right font-semibold tabular-nums">${Number(claim.totalAmount).toFixed(2)}</TableCell>
+                        <TableCell className="text-right font-semibold tabular-nums">{CURRENCY_SYMBOLS[claim.currency || 'HKD']}{Number(claim.totalAmount).toFixed(2)}</TableCell>
+                        <TableCell>
+                          <Badge variant={claim.currency === 'RMB' ? 'destructive' : 'secondary'} className="font-normal text-xs">
+                            {claim.currency || 'HKD'}
+                          </Badge>
+                        </TableCell>
                         <TableCell>{claim.expenseIds ? claim.expenseIds.split(',').length : 0} 筆</TableCell>
                       </TableRow>
                     ))}
