@@ -235,6 +235,24 @@ function readExpenseRecords(sheetName) {
   return records;
 }
 
+// Helper to read claim records from a sheet
+function readClaimRecords(sheetName) {
+  var sheet = getSheet(sheetName);
+  var data = sheet.getDataRange().getValues();
+  var records = [];
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0] === '') continue;
+    records.push({
+      id: data[i][0],
+      staff: data[i][1],
+      claimDate: data[i][2],
+      totalAmount: data[i][3],
+      expenseIds: data[i][4]
+    });
+  }
+  return records;
+}
+
 function doGet(e) {
   var action = e.parameter.action;
 
