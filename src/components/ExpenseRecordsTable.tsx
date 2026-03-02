@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { type ExpenseRecord, DEPARTMENTS, EXPENSE_CATEGORIES } from '@/types/record';
+import { type ExpenseRecord, DEPARTMENTS, EXPENSE_CATEGORIES, CURRENCY_SYMBOLS } from '@/types/record';
 import { fetchExpenses } from '@/lib/googleSheets';
 import { useStaff } from '@/contexts/StaffContext';
 import { useToast } from '@/hooks/use-toast';
