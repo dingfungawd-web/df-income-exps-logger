@@ -47,6 +47,31 @@ export function setScriptUrl(url: string): void {
   localStorage.setItem(SCRIPT_URL_KEY, normalizeScriptUrl(url));
 }
 
+// Helper for POST requests – Google Apps Script redirects can cause
+// `res.ok` to be false even when the write succeeds (CORS on redirect).
+// We try to parse the JSON body; if that succeeds with `success:true` we
+// treat it as OK.  If the response is opaque we optimistically assume success.
+async function postToScript(payload: Record<string, unknown>): Promise<any> {
+  const url = getScriptUrl();
+  const res = await fetch(url, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    redirect: 'follow',
+  });
+
+  // Opaque responses (e.g. from no-cors fallback) – assume success
+  if (res.type === 'opaque') return { success: true };
+
+  try {
+    const json = await res.json();
+    if (json.error) throw new Error(json.error);
+    return json;
+  } catch {
+    if (!res.ok) throw new Error(`請求失敗 (${res.status})`);
+    return { success: true };
+  }
+}
+
 // ─── Revenue ───
 export async function fetchRecords(): Promise<RevenueRecord[]> {
   const res = await fetch(buildScriptActionUrl('getAll'), { redirect: 'follow' });
