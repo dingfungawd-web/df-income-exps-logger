@@ -1,4 +1,4 @@
-export type Department = '度尺銷售部' | '安裝部' | '老闆';
+export type Department = '度尺銷售部' | '安裝部' | '老闆' | 'CRM';
 
 export type PaymentMethod = '現金' | '支票' | '轉數快' | '微信支付' | '支付寶' | 'PayMe';
 
