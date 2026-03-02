@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
-import { DEPARTMENTS, PAYMENT_METHODS, REVENUE_CATEGORIES, type Department, type PaymentMethod, type RevenueCategory, type RevenueRecord } from '@/types/record';
+import { DEPARTMENTS, ADMIN_DEPARTMENTS, PAYMENT_METHODS, REVENUE_CATEGORIES, type Department, type PaymentMethod, type RevenueCategory, type RevenueRecord } from '@/types/record';
 import { submitRecord, updateRecord } from '@/lib/googleSheets';
 import { useToast } from '@/hooks/use-toast';
 
