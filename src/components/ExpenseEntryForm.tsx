@@ -93,6 +93,18 @@ const ExpenseEntryForm = ({ editingRecord, onComplete, onCancelEdit }: ExpenseEn
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       <div className="space-y-2">
+        <Label className="text-sm font-medium text-foreground">幣種</Label>
+        <RadioGroup value={currency} onValueChange={(v) => setCurrency(v as ExpenseCurrency)} className="flex gap-4">
+          {EXPENSE_CURRENCIES.map((c) => (
+            <div key={c} className="flex items-center gap-2">
+              <RadioGroupItem value={c} id={`currency-${c}`} />
+              <Label htmlFor={`currency-${c}`} className="text-sm cursor-pointer font-normal">{CURRENCY_LABELS[c]}</Label>
+            </div>
+          ))}
+        </RadioGroup>
+      </div>
+
+      <div className="space-y-2">
         <Label className="text-sm font-medium text-foreground">日期</Label>
         <Popover>
           <PopoverTrigger asChild>
