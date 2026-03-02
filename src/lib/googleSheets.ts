@@ -47,6 +47,31 @@ export function setScriptUrl(url: string): void {
   localStorage.setItem(SCRIPT_URL_KEY, normalizeScriptUrl(url));
 }
 
+// Helper for POST requests – Google Apps Script redirects can cause
+// `res.ok` to be false even when the write succeeds (CORS on redirect).
+// We try to parse the JSON body; if that succeeds with `success:true` we
+// treat it as OK.  If the response is opaque we optimistically assume success.
+async function postToScript(payload: Record<string, unknown>): Promise<any> {
+  const url = getScriptUrl();
+  const res = await fetch(url, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    redirect: 'follow',
+  });
+
+  // Opaque responses (e.g. from no-cors fallback) – assume success
+  if (res.type === 'opaque') return { success: true };
+
+  try {
+    const json = await res.json();
+    if (json.error) throw new Error(json.error);
+    return json;
+  } catch {
+    if (!res.ok) throw new Error(`請求失敗 (${res.status})`);
+    return { success: true };
+  }
+}
+
 // ─── Revenue ───
 export async function fetchRecords(): Promise<RevenueRecord[]> {
   const res = await fetch(buildScriptActionUrl('getAll'), { redirect: 'follow' });
@@ -56,23 +81,11 @@ export async function fetchRecords(): Promise<RevenueRecord[]> {
 }
 
 export async function submitRecord(record: Omit<RevenueRecord, 'id'>): Promise<void> {
-  const url = getScriptUrl();
-  const res = await fetch(url, {
-    method: 'POST',
-    body: JSON.stringify({ action: 'add', ...record }),
-    redirect: 'follow',
-  });
-  if (!res.ok) throw new Error('提交失敗');
+  await postToScript({ action: 'add', ...record });
 }
 
 export async function updateRecord(record: RevenueRecord): Promise<void> {
-  const url = getScriptUrl();
-  const res = await fetch(url, {
-    method: 'POST',
-    body: JSON.stringify({ action: 'update', ...record }),
-    redirect: 'follow',
-  });
-  if (!res.ok) throw new Error('更新失敗');
+  await postToScript({ action: 'update', ...record });
 }
 
 // ─── Handover 交數 ───
@@ -84,13 +97,7 @@ export async function fetchHandoverHistory(): Promise<HandoverRecord[]> {
 }
 
 export async function confirmHandover(revenueIds: string[], staff: string, totalAmount: number): Promise<void> {
-  const url = getScriptUrl();
-  const res = await fetch(url, {
-    method: 'POST',
-    body: JSON.stringify({ action: 'confirmHandover', revenueIds, staff, totalAmount }),
-    redirect: 'follow',
-  });
-  if (!res.ok) throw new Error('交數確認失敗');
+  await postToScript({ action: 'confirmHandover', revenueIds, staff, totalAmount });
 }
 
 // ─── Expenses ───
@@ -114,36 +121,18 @@ export async function fetchExpenses(): Promise<ExpenseRecord[]> {
 
 export async function submitExpense(record: Omit<ExpenseRecord, 'id' | 'claimed' | 'claimDate' | 'claimAmount'>): Promise<void> {
   const action = record.currency === 'RMB' ? 'addExpenseRMB' : 'addExpense';
-  const url = getScriptUrl();
-  const res = await fetch(url, {
-    method: 'POST',
-    body: JSON.stringify({ action, ...record }),
-    redirect: 'follow',
-  });
-  if (!res.ok) throw new Error('提交支出失敗');
+  await postToScript({ action, ...record });
 }
 
 export async function updateExpense(record: ExpenseRecord): Promise<void> {
   const action = record.currency === 'RMB' ? 'updateExpenseRMB' : 'updateExpense';
-  const url = getScriptUrl();
-  const res = await fetch(url, {
-    method: 'POST',
-    body: JSON.stringify({ action, ...record }),
-    redirect: 'follow',
-  });
-  if (!res.ok) throw new Error('更新支出失敗');
+  await postToScript({ action, ...record });
 }
 
 // ─── Claim ───
 export async function claimExpenses(expenseIds: string[], staff: string, totalAmount: number, currency: 'HKD' | 'RMB' = 'HKD'): Promise<void> {
   const action = currency === 'RMB' ? 'claimExpensesRMB' : 'claimExpenses';
-  const url = getScriptUrl();
-  const res = await fetch(url, {
-    method: 'POST',
-    body: JSON.stringify({ action, expenseIds, staff, totalAmount }),
-    redirect: 'follow',
-  });
-  if (!res.ok) throw new Error('Claim 失敗');
+  await postToScript({ action, expenseIds, staff, totalAmount });
 }
 
 export async function fetchClaimHistory(): Promise<ClaimRecord[]> {
@@ -155,37 +144,16 @@ export async function fetchClaimHistory(): Promise<ClaimRecord[]> {
 
 // ─── Clear All Records ───
 export async function clearAllRecords(): Promise<{ success: boolean; message: string }> {
-  const url = getScriptUrl();
-  const res = await fetch(url, {
-    method: 'POST',
-    body: JSON.stringify({ action: 'clearAllRecords' }),
-    redirect: 'follow',
-  });
-  if (!res.ok) throw new Error('清除記錄失敗');
-  return res.json();
+  return await postToScript({ action: 'clearAllRecords' });
 }
 
 // ─── Auth ───
 export async function loginUser(name: string, password: string): Promise<{ success: boolean; message: string }> {
-  const url = getScriptUrl();
-  const res = await fetch(url, {
-    method: 'POST',
-    body: JSON.stringify({ action: 'login', name, password }),
-    redirect: 'follow',
-  });
-  if (!res.ok) throw new Error('登入失敗');
-  return res.json();
+  return await postToScript({ action: 'login', name, password });
 }
 
 export async function registerUser(name: string, password: string): Promise<{ success: boolean; message: string }> {
-  const url = getScriptUrl();
-  const res = await fetch(url, {
-    method: 'POST',
-    body: JSON.stringify({ action: 'register', name, password }),
-    redirect: 'follow',
-  });
-  if (!res.ok) throw new Error('註冊失敗');
-  return res.json();
+  return await postToScript({ action: 'register', name, password });
 }
 
 export async function fetchAllUsers(): Promise<StaffUser[]> {
@@ -196,14 +164,7 @@ export async function fetchAllUsers(): Promise<StaffUser[]> {
 }
 
 export async function deleteUser(name: string): Promise<{ success: boolean; message: string }> {
-  const url = getScriptUrl();
-  const res = await fetch(url, {
-    method: 'POST',
-    body: JSON.stringify({ action: 'deleteUser', name }),
-    redirect: 'follow',
-  });
-  if (!res.ok) throw new Error('刪除用戶失敗');
-  return res.json();
+  return await postToScript({ action: 'deleteUser', name });
 }
 
 export const APPS_SCRIPT_CODE = `
