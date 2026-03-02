@@ -1,7 +1,7 @@
 import { RevenueRecord, ExpenseRecord, StaffUser, ClaimRecord, HandoverRecord } from '@/types/record';
 
 const SCRIPT_URL_KEY = 'google_apps_script_url';
-const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz-6efDj2-cR8X-9McWwpXhpXFUVnB7YMlZVLEwtmhGuwYjcHpch9aUdVDlQfH209Ue/exec';
+const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyAxKs-gNCIj5VcQq1TzpoNmyxTxRVX-q1eJrI1TgsKSndA1MZ5XOYW5LaJhfD9-wJW/exec';
 
 function normalizeScriptUrl(url: string): string {
   const trimmed = url.trim();
