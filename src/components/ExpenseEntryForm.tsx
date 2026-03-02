@@ -147,9 +147,9 @@ const ExpenseEntryForm = ({ editingRecord, onComplete, onCancelEdit }: ExpenseEn
       )}
 
       <div className="space-y-2">
-        <Label className="text-sm font-medium text-foreground">金額 (HKD)</Label>
+        <Label className="text-sm font-medium text-foreground">金額 ({currency === 'RMB' ? 'RMB' : 'HKD'})</Label>
         <div className="relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">$</span>
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">{CURRENCY_SYMBOLS[currency]}</span>
           <Input type="number" step="0.01" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" className="pl-8 h-11 text-base" />
         </div>
       </div>

@@ -88,38 +88,52 @@ export async function confirmHandover(revenueIds: string[], staff: string, total
 
 // ─── Expenses ───
 export async function fetchExpenses(): Promise<ExpenseRecord[]> {
-  const res = await fetch(buildScriptActionUrl('getExpenses'), { redirect: 'follow' });
-  if (!res.ok) throw new Error('無法讀取支出資料');
-  const data = await res.json();
-  return data.records || [];
+  const [hkdRes, rmbRes] = await Promise.all([
+    fetch(buildScriptActionUrl('getExpenses'), { redirect: 'follow' }),
+    fetch(buildScriptActionUrl('getExpensesRMB'), { redirect: 'follow' }),
+  ]);
+  if (!hkdRes.ok) throw new Error('無法讀取支出資料');
+  const hkdData = await hkdRes.json();
+  const hkdRecords: ExpenseRecord[] = (hkdData.records || []).map((r: any) => ({ ...r, currency: 'HKD' as const }));
+
+  let rmbRecords: ExpenseRecord[] = [];
+  if (rmbRes.ok) {
+    const rmbData = await rmbRes.json();
+    rmbRecords = (rmbData.records || []).map((r: any) => ({ ...r, currency: 'RMB' as const }));
+  }
+
+  return [...hkdRecords, ...rmbRecords];
 }
 
 export async function submitExpense(record: Omit<ExpenseRecord, 'id' | 'claimed' | 'claimDate' | 'claimAmount'>): Promise<void> {
+  const action = record.currency === 'RMB' ? 'addExpenseRMB' : 'addExpense';
   const url = getScriptUrl();
   const res = await fetch(url, {
     method: 'POST',
-    body: JSON.stringify({ action: 'addExpense', ...record }),
+    body: JSON.stringify({ action, ...record }),
     redirect: 'follow',
   });
   if (!res.ok) throw new Error('提交支出失敗');
 }
 
 export async function updateExpense(record: ExpenseRecord): Promise<void> {
+  const action = record.currency === 'RMB' ? 'updateExpenseRMB' : 'updateExpense';
   const url = getScriptUrl();
   const res = await fetch(url, {
     method: 'POST',
-    body: JSON.stringify({ action: 'updateExpense', ...record }),
+    body: JSON.stringify({ action, ...record }),
     redirect: 'follow',
   });
   if (!res.ok) throw new Error('更新支出失敗');
 }
 
 // ─── Claim ───
-export async function claimExpenses(expenseIds: string[], staff: string, totalAmount: number): Promise<void> {
+export async function claimExpenses(expenseIds: string[], staff: string, totalAmount: number, currency: 'HKD' | 'RMB' = 'HKD'): Promise<void> {
+  const action = currency === 'RMB' ? 'claimExpensesRMB' : 'claimExpenses';
   const url = getScriptUrl();
   const res = await fetch(url, {
     method: 'POST',
-    body: JSON.stringify({ action: 'claimExpenses', expenseIds, staff, totalAmount }),
+    body: JSON.stringify({ action, expenseIds, staff, totalAmount }),
     redirect: 'follow',
   });
   if (!res.ok) throw new Error('Claim 失敗');

@@ -133,7 +133,12 @@ const ExpenseRecordsTable = ({ onEdit, refreshKey }: ExpenseRecordsTableProps) =
                   <TableCell><Badge variant="secondary" className="font-normal">{record.department}</Badge></TableCell>
                   <TableCell><Badge variant="outline">{record.category}</Badge></TableCell>
                   <TableCell className="text-right font-semibold tabular-nums text-sm">
-                    ${record.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    {(CURRENCY_SYMBOLS[record.currency] || '$')}{record.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={record.currency === 'RMB' ? 'destructive' : 'secondary'} className="font-normal text-xs">
+                      {record.currency || 'HKD'}
+                    </Badge>
                   </TableCell>
                   <TableCell>
                     {record.claimed ? (
