@@ -272,20 +272,12 @@ function doGet(e) {
   }
 
   if (action === 'getClaimHistory') {
-    var sheet = getSheet('Claim記錄');
-    var data = sheet.getDataRange().getValues();
-    var records = [];
-    for (var i = 1; i < data.length; i++) {
-      if (data[i][0] === '') continue;
-      records.push({
-        id: data[i][0],
-        staff: data[i][1],
-        claimDate: data[i][2],
-        totalAmount: data[i][3],
-        expenseIds: data[i][4]
-      });
-    }
-    return ContentService.createTextOutput(JSON.stringify({ records: records }))
+    return ContentService.createTextOutput(JSON.stringify({ records: readClaimRecords('Claim記錄') }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  if (action === 'getClaimHistoryRMB') {
+    return ContentService.createTextOutput(JSON.stringify({ records: readClaimRecords('Claim記錄(人民幣)') }))
       .setMimeType(ContentService.MimeType.JSON);
   }
 
