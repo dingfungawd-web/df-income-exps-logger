@@ -118,6 +118,7 @@ const ExpenseRecordsTable = ({ onEdit, refreshKey }: ExpenseRecordsTableProps) =
                 <TableHead className="font-semibold">部門</TableHead>
                 <TableHead className="font-semibold">類別</TableHead>
                 <TableHead className="font-semibold text-right">金額</TableHead>
+                <TableHead className="font-semibold">幣種</TableHead>
                 <TableHead className="font-semibold">狀態</TableHead>
                 <TableHead className="font-semibold w-12">修改記錄</TableHead>
               </TableRow>
