@@ -109,7 +109,7 @@ const ExpenseEntryForm = ({ editingRecord, onComplete, onCancelEdit }: ExpenseEn
         <Select value={department} onValueChange={(v) => setDepartment(v as Department)}>
           <SelectTrigger className="h-11"><SelectValue placeholder="選擇部門" /></SelectTrigger>
           <SelectContent>
-            {DEPARTMENTS.map((d) => (<SelectItem key={d} value={d}>{d}</SelectItem>))}
+            {departmentOptions.map((d) => (<SelectItem key={d} value={d}>{d}</SelectItem>))}
           </SelectContent>
         </Select>
       </div>

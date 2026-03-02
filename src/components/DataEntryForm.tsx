@@ -141,7 +141,7 @@ const DataEntryForm = ({ editingRecord, onComplete, onCancelEdit }: DataEntryFor
             <SelectValue placeholder="選擇部門" />
           </SelectTrigger>
           <SelectContent>
-            {DEPARTMENTS.map((d) => (
+            {departmentOptions.map((d) => (
               <SelectItem key={d} value={d}>{d}</SelectItem>
             ))}
           </SelectContent>
