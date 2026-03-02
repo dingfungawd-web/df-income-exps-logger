@@ -90,9 +90,11 @@ const ExpenseRecordsTable = ({ onEdit, refreshKey }: ExpenseRecordsTableProps) =
 
       <div className="flex items-center justify-between px-1 flex-wrap gap-2">
         <span className="text-sm text-muted-foreground">共 {filtered.length} 筆</span>
-        <div className="flex gap-4 text-sm">
-          <span className="font-semibold text-foreground">總計: ${totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-          <span className="text-warning font-medium">未Claim: ${unclaimedAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+        <div className="flex gap-4 text-sm flex-wrap">
+          <span className="font-semibold text-foreground">HKD總計: ${filtered.filter(r => r.currency !== 'RMB').reduce((s, r) => s + r.amount, 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+          <span className="font-semibold text-foreground">RMB總計: ¥{filtered.filter(r => r.currency === 'RMB').reduce((s, r) => s + r.amount, 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+          <span className="text-warning font-medium">未Claim(HKD): ${filtered.filter(r => !r.claimed && r.currency !== 'RMB').reduce((s, r) => s + r.amount, 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+          <span className="text-warning font-medium">未Claim(RMB): ¥{filtered.filter(r => !r.claimed && r.currency === 'RMB').reduce((s, r) => s + r.amount, 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
         </div>
       </div>
 
