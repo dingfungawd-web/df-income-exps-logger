@@ -85,13 +85,7 @@ export async function submitRecord(record: Omit<RevenueRecord, 'id'>): Promise<v
 }
 
 export async function updateRecord(record: RevenueRecord): Promise<void> {
-  const url = getScriptUrl();
-  const res = await fetch(url, {
-    method: 'POST',
-    body: JSON.stringify({ action: 'update', ...record }),
-    redirect: 'follow',
-  });
-  if (!res.ok) throw new Error('更新失敗');
+  await postToScript({ action: 'update', ...record });
 }
 
 // ─── Handover 交數 ───
