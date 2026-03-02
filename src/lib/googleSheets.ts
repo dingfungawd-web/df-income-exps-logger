@@ -97,13 +97,7 @@ export async function fetchHandoverHistory(): Promise<HandoverRecord[]> {
 }
 
 export async function confirmHandover(revenueIds: string[], staff: string, totalAmount: number): Promise<void> {
-  const url = getScriptUrl();
-  const res = await fetch(url, {
-    method: 'POST',
-    body: JSON.stringify({ action: 'confirmHandover', revenueIds, staff, totalAmount }),
-    redirect: 'follow',
-  });
-  if (!res.ok) throw new Error('交數確認失敗');
+  await postToScript({ action: 'confirmHandover', revenueIds, staff, totalAmount });
 }
 
 // ─── Expenses ───
