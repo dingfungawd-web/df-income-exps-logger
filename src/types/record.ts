@@ -54,6 +54,7 @@ export interface ClaimRecord {
   claimDate: string;
   totalAmount: number;
   expenseIds: string;
+  currency?: ExpenseCurrency;
 }
 
 export const DEPARTMENTS: Department[] = ['度尺銷售部', '安裝部', 'CRM'];
