@@ -325,6 +325,7 @@ const AdminClaimPanel = () => {
                       <TableHead className="font-semibold">同事</TableHead>
                       <TableHead className="font-semibold">類別</TableHead>
                       <TableHead className="font-semibold text-right">金額</TableHead>
+                      <TableHead className="font-semibold">幣種</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
