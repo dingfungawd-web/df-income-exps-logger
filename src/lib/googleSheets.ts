@@ -136,10 +136,21 @@ export async function claimExpenses(expenseIds: string[], staff: string, totalAm
 }
 
 export async function fetchClaimHistory(): Promise<ClaimRecord[]> {
-  const res = await fetch(buildScriptActionUrl('getClaimHistory'), { redirect: 'follow' });
-  if (!res.ok) throw new Error('無法讀取 Claim 記錄');
-  const data = await res.json();
-  return data.records || [];
+  const [hkdRes, rmbRes] = await Promise.all([
+    fetch(buildScriptActionUrl('getClaimHistory'), { redirect: 'follow' }),
+    fetch(buildScriptActionUrl('getClaimHistoryRMB'), { redirect: 'follow' }),
+  ]);
+  if (!hkdRes.ok) throw new Error('無法讀取 Claim 記錄');
+  const hkdData = await hkdRes.json();
+  const hkdRecords: ClaimRecord[] = (hkdData.records || []).map((r: any) => ({ ...r, currency: 'HKD' as const }));
+
+  let rmbRecords: ClaimRecord[] = [];
+  if (rmbRes.ok) {
+    const rmbData = await rmbRes.json();
+    rmbRecords = (rmbData.records || []).map((r: any) => ({ ...r, currency: 'RMB' as const }));
+  }
+
+  return [...hkdRecords, ...rmbRecords];
 }
 
 // ─── Clear All Records ───
@@ -173,12 +184,13 @@ export const APPS_SCRIPT_CODE = `
 // 存取權限設為「所有人」
 //
 // 需要以下 Sheet 分頁（首次請求時自動建立）:
-// 1. "收入"           - ID, Case ID, 日期, 部門, 收入類別, 金額, 收款方式, 同事, 已交數, 交數日期
-// 2. "支出"           - ID, 日期, 部門, 同事, 支出類別, 支出備註, 金額, 已Claim, Claim日期, Claim金額
-// 3. "支出(人民幣)"   - ID, 日期, 部門, 同事, 支出類別, 支出備註, 金額, 已Claim, Claim日期, Claim金額
-// 4. "用戶"           - 姓名, 密碼
-// 5. "Claim記錄"      - ID, 同事, Claim日期, 總金額, 支出ID列表
-// 6. "交數記錄"       - ID, 同事, 交數日期, 金額, 收入ID
+// 1. "收入"              - ID, Case ID, 日期, 部門, 收入類別, 金額, 收款方式, 同事, 已交數, 交數日期
+// 2. "支出"              - ID, 日期, 部門, 同事, 支出類別, 支出備註, 金額, 已Claim, Claim日期, Claim金額
+// 3. "支出(人民幣)"      - ID, 日期, 部門, 同事, 支出類別, 支出備註, 金額, 已Claim, Claim日期, Claim金額
+// 4. "用戶"              - 姓名, 密碼
+// 5. "Claim記錄"         - ID, 同事, Claim日期, 總金額, 支出ID列表
+// 6. "Claim記錄(人民幣)" - ID, 同事, Claim日期, 總金額, 支出ID列表
+// 7. "交數記錄"          - ID, 同事, 交數日期, 金額, 收入ID
 
 function getSheet(name) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -191,7 +203,7 @@ function getSheet(name) {
       sheet.appendRow(['ID', '日期', '部門', '同事', '支出類別', '支出備註', '金額', '已Claim', 'Claim日期', 'Claim金額']);
     } else if (name === '用戶') {
       sheet.appendRow(['姓名', '密碼']);
-    } else if (name === 'Claim記錄') {
+    } else if (name === 'Claim記錄' || name === 'Claim記錄(人民幣)') {
       sheet.appendRow(['ID', '同事', 'Claim日期', '總金額', '支出ID列表']);
     } else if (name === '交數記錄') {
       sheet.appendRow(['ID', '同事', '交數日期', '金額', '收入ID']);
@@ -218,6 +230,24 @@ function readExpenseRecords(sheetName) {
       claimed: data[i][7] === true || data[i][7] === 'TRUE' || data[i][7] === 'true',
       claimDate: data[i][8] || '',
       claimAmount: data[i][9] || 0
+    });
+  }
+  return records;
+}
+
+// Helper to read claim records from a sheet
+function readClaimRecords(sheetName) {
+  var sheet = getSheet(sheetName);
+  var data = sheet.getDataRange().getValues();
+  var records = [];
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0] === '') continue;
+    records.push({
+      id: data[i][0],
+      staff: data[i][1],
+      claimDate: data[i][2],
+      totalAmount: data[i][3],
+      expenseIds: data[i][4]
     });
   }
   return records;
@@ -260,20 +290,12 @@ function doGet(e) {
   }
 
   if (action === 'getClaimHistory') {
-    var sheet = getSheet('Claim記錄');
-    var data = sheet.getDataRange().getValues();
-    var records = [];
-    for (var i = 1; i < data.length; i++) {
-      if (data[i][0] === '') continue;
-      records.push({
-        id: data[i][0],
-        staff: data[i][1],
-        claimDate: data[i][2],
-        totalAmount: data[i][3],
-        expenseIds: data[i][4]
-      });
-    }
-    return ContentService.createTextOutput(JSON.stringify({ records: records }))
+    return ContentService.createTextOutput(JSON.stringify({ records: readClaimRecords('Claim記錄') }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  if (action === 'getClaimHistoryRMB') {
+    return ContentService.createTextOutput(JSON.stringify({ records: readClaimRecords('Claim記錄(人民幣)') }))
       .setMimeType(ContentService.MimeType.JSON);
   }
 
@@ -434,7 +456,7 @@ function doPost(e) {
   // ─── Claim 報銷 (人民幣) ───
   if (data.action === 'claimExpensesRMB') {
     var expSheet = getSheet('支出(人民幣)');
-    var claimSheet = getSheet('Claim記錄');
+    var claimSheet = getSheet('Claim記錄(人民幣)');
     var claimId = Utilities.getUuid();
     var claimDate = Utilities.formatDate(new Date(), 'Asia/Hong_Kong', 'yyyy-MM-dd');
     var expenseIds = data.expenseIds;
@@ -532,7 +554,7 @@ function doPost(e) {
 
   // ─── 清除所有收入及支出記錄 ───
   if (data.action === 'clearAllRecords') {
-    var sheets = ['收入', '支出', '支出(人民幣)', 'Claim記錄', '交數記錄'];
+    var sheets = ['收入', '支出', '支出(人民幣)', 'Claim記錄', 'Claim記錄(人民幣)', '交數記錄'];
     for (var s = 0; s < sheets.length; s++) {
       var sheet = getSheet(sheets[s]);
       var lastRow = sheet.getLastRow();
