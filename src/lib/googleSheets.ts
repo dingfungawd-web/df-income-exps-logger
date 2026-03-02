@@ -132,13 +132,7 @@ export async function updateExpense(record: ExpenseRecord): Promise<void> {
 // ─── Claim ───
 export async function claimExpenses(expenseIds: string[], staff: string, totalAmount: number, currency: 'HKD' | 'RMB' = 'HKD'): Promise<void> {
   const action = currency === 'RMB' ? 'claimExpensesRMB' : 'claimExpenses';
-  const url = getScriptUrl();
-  const res = await fetch(url, {
-    method: 'POST',
-    body: JSON.stringify({ action, expenseIds, staff, totalAmount }),
-    redirect: 'follow',
-  });
-  if (!res.ok) throw new Error('Claim 失敗');
+  await postToScript({ action, expenseIds, staff, totalAmount });
 }
 
 export async function fetchClaimHistory(): Promise<ClaimRecord[]> {
