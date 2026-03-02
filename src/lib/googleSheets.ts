@@ -146,7 +146,6 @@ export async function fetchClaimHistory(): Promise<ClaimRecord[]> {
 export async function clearAllRecords(): Promise<{ success: boolean; message: string }> {
   return await postToScript({ action: 'clearAllRecords' });
 }
-}
 
 // ─── Auth ───
 export async function loginUser(name: string, password: string): Promise<{ success: boolean; message: string }> {
