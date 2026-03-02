@@ -205,11 +205,12 @@ export const APPS_SCRIPT_CODE = `
 // 存取權限設為「所有人」
 //
 // 需要以下 Sheet 分頁（首次請求時自動建立）:
-// 1. "收入"       - ID, 日期, 部門, 金額, 收款方式, 同事, 已交數, 交數日期
-// 2. "支出"       - ID, 日期, 部門, 同事, 支出類別, 金額, 已Claim, Claim日期, Claim金額
-// 3. "用戶"       - 姓名, 密碼
-// 4. "Claim記錄"  - ID, 同事, Claim日期, 總金額, 支出ID列表
-// 5. "交數記錄"   - ID, 同事, 交數日期, 總金額, 收入ID列表
+// 1. "收入"           - ID, Case ID, 日期, 部門, 收入類別, 金額, 收款方式, 同事, 已交數, 交數日期
+// 2. "支出"           - ID, 日期, 部門, 同事, 支出類別, 支出備註, 金額, 已Claim, Claim日期, Claim金額
+// 3. "支出(人民幣)"   - ID, 日期, 部門, 同事, 支出類別, 支出備註, 金額, 已Claim, Claim日期, Claim金額
+// 4. "用戶"           - 姓名, 密碼
+// 5. "Claim記錄"      - ID, 同事, Claim日期, 總金額, 支出ID列表
+// 6. "交數記錄"       - ID, 同事, 交數日期, 金額, 收入ID
 
 function getSheet(name) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -218,7 +219,7 @@ function getSheet(name) {
     sheet = ss.insertSheet(name);
     if (name === '收入') {
       sheet.appendRow(['ID', 'Case ID', '日期', '部門', '收入類別', '金額', '收款方式', '同事', '已交數', '交數日期']);
-    } else if (name === '支出') {
+    } else if (name === '支出' || name === '支出(人民幣)') {
       sheet.appendRow(['ID', '日期', '部門', '同事', '支出類別', '支出備註', '金額', '已Claim', 'Claim日期', 'Claim金額']);
     } else if (name === '用戶') {
       sheet.appendRow(['姓名', '密碼']);
@@ -229,6 +230,29 @@ function getSheet(name) {
     }
   }
   return sheet;
+}
+
+// Helper to read expense records from a sheet
+function readExpenseRecords(sheetName) {
+  var sheet = getSheet(sheetName);
+  var data = sheet.getDataRange().getValues();
+  var records = [];
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0] === '') continue;
+    records.push({
+      id: data[i][0],
+      date: data[i][1],
+      department: data[i][2],
+      staff: data[i][3],
+      category: data[i][4],
+      remarks: data[i][5] || '',
+      amount: data[i][6],
+      claimed: data[i][7] === true || data[i][7] === 'TRUE' || data[i][7] === 'true',
+      claimDate: data[i][8] || '',
+      claimAmount: data[i][9] || 0
+    });
+  }
+  return records;
 }
 
 function doGet(e) {
