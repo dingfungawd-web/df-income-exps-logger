@@ -57,7 +57,7 @@ const AdminClaimPanel = () => {
 
   const unclaimedExpenses = useMemo(() => {
     return expenses
-      .filter(e => !e.claimed)
+      .filter(e => !e.claimed && e.staff !== 'admin')
       .filter(e => selectedStaff === 'all' || e.staff === selectedStaff)
       .sort((a, b) => b.date.localeCompare(a.date));
   }, [expenses, selectedStaff]);
