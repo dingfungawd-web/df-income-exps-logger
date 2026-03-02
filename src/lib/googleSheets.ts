@@ -81,13 +81,7 @@ export async function fetchRecords(): Promise<RevenueRecord[]> {
 }
 
 export async function submitRecord(record: Omit<RevenueRecord, 'id'>): Promise<void> {
-  const url = getScriptUrl();
-  const res = await fetch(url, {
-    method: 'POST',
-    body: JSON.stringify({ action: 'add', ...record }),
-    redirect: 'follow',
-  });
-  if (!res.ok) throw new Error('提交失敗');
+  await postToScript({ action: 'add', ...record });
 }
 
 export async function updateRecord(record: RevenueRecord): Promise<void> {
