@@ -149,25 +149,11 @@ export async function clearAllRecords(): Promise<{ success: boolean; message: st
 
 // ─── Auth ───
 export async function loginUser(name: string, password: string): Promise<{ success: boolean; message: string }> {
-  const url = getScriptUrl();
-  const res = await fetch(url, {
-    method: 'POST',
-    body: JSON.stringify({ action: 'login', name, password }),
-    redirect: 'follow',
-  });
-  if (!res.ok) throw new Error('登入失敗');
-  return res.json();
+  return await postToScript({ action: 'login', name, password });
 }
 
 export async function registerUser(name: string, password: string): Promise<{ success: boolean; message: string }> {
-  const url = getScriptUrl();
-  const res = await fetch(url, {
-    method: 'POST',
-    body: JSON.stringify({ action: 'register', name, password }),
-    redirect: 'follow',
-  });
-  if (!res.ok) throw new Error('註冊失敗');
-  return res.json();
+  return await postToScript({ action: 'register', name, password });
 }
 
 export async function fetchAllUsers(): Promise<StaffUser[]> {
@@ -178,14 +164,7 @@ export async function fetchAllUsers(): Promise<StaffUser[]> {
 }
 
 export async function deleteUser(name: string): Promise<{ success: boolean; message: string }> {
-  const url = getScriptUrl();
-  const res = await fetch(url, {
-    method: 'POST',
-    body: JSON.stringify({ action: 'deleteUser', name }),
-    redirect: 'follow',
-  });
-  if (!res.ok) throw new Error('刪除用戶失敗');
-  return res.json();
+  return await postToScript({ action: 'deleteUser', name });
 }
 
 export const APPS_SCRIPT_CODE = `
