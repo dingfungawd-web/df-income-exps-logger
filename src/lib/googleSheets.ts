@@ -121,13 +121,7 @@ export async function fetchExpenses(): Promise<ExpenseRecord[]> {
 
 export async function submitExpense(record: Omit<ExpenseRecord, 'id' | 'claimed' | 'claimDate' | 'claimAmount'>): Promise<void> {
   const action = record.currency === 'RMB' ? 'addExpenseRMB' : 'addExpense';
-  const url = getScriptUrl();
-  const res = await fetch(url, {
-    method: 'POST',
-    body: JSON.stringify({ action, ...record }),
-    redirect: 'follow',
-  });
-  if (!res.ok) throw new Error('提交支出失敗');
+  await postToScript({ action, ...record });
 }
 
 export async function updateExpense(record: ExpenseRecord): Promise<void> {
