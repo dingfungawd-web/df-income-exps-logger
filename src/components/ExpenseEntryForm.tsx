@@ -31,6 +31,7 @@ const ExpenseEntryForm = ({ editingRecord, onComplete, onCancelEdit }: ExpenseEn
   const [category, setCategory] = useState<ExpenseCategory | ''>(editingRecord?.category || '');
   const [amount, setAmount] = useState(editingRecord?.amount?.toString() || '');
   const [remarks, setRemarks] = useState(editingRecord?.remarks || '');
+  const [currency, setCurrency] = useState<ExpenseCurrency>(editingRecord?.currency || 'HKD');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
