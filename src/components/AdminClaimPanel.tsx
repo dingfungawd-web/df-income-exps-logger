@@ -303,7 +303,7 @@ const AdminClaimPanel = () => {
 
             {selectedIds.size > 0 && (
               <div className="flex items-center justify-between p-3 rounded-lg bg-primary/5 border border-primary/20">
-                <span className="text-sm font-medium">已選 {selectedIds.size} 筆，總計: <span className="text-primary font-bold">${selectedTotal.toFixed(2)}</span></span>
+                <span className="text-sm font-medium">已選 {selectedIds.size} 筆，總計: <span className="text-primary font-bold">{CURRENCY_SYMBOLS[selectedCurrency]}{selectedTotal.toFixed(2)}</span></span>
                 <Button onClick={handleClaim} disabled={claimLoading} size="sm">
                   {claimLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   <CheckCircle2 className="mr-1.5 h-4 w-4" />確認 Claim
