@@ -68,6 +68,12 @@ const AdminClaimPanel = () => {
       .reduce((sum, e) => sum + e.amount, 0);
   }, [unclaimedExpenses, selectedIds]);
 
+  const selectedCurrency = useMemo(() => {
+    const selected = unclaimedExpenses.filter(e => selectedIds.has(e.id));
+    if (selected.length === 0) return 'HKD';
+    return selected[0]?.currency || 'HKD';
+  }, [unclaimedExpenses, selectedIds]);
+
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => {
       const next = new Set(prev);
