@@ -20,7 +20,8 @@ interface ExpenseEntryFormProps {
 }
 
 const ExpenseEntryForm = ({ editingRecord, onComplete, onCancelEdit }: ExpenseEntryFormProps) => {
-  const { staffName } = useStaff();
+  const { staffName, isAdmin } = useStaff();
+  const departmentOptions = isAdmin ? ADMIN_DEPARTMENTS : DEPARTMENTS;
   const { toast } = useToast();
   const [date, setDate] = useState<Date | undefined>(
     editingRecord ? new Date(editingRecord.date) : new Date()
