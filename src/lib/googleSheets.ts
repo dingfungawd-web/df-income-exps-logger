@@ -29,6 +29,13 @@ export function getScriptUrl(): string {
   if (!stored) return DEFAULT_SCRIPT_URL;
 
   const normalizedStored = normalizeScriptUrl(stored);
+
+  // Auto-migrate: if stored URL differs from the latest default, update it
+  if (normalizedStored !== DEFAULT_SCRIPT_URL) {
+    localStorage.setItem(SCRIPT_URL_KEY, DEFAULT_SCRIPT_URL);
+    return DEFAULT_SCRIPT_URL;
+  }
+
   if (normalizedStored !== stored) {
     localStorage.setItem(SCRIPT_URL_KEY, normalizedStored);
   }

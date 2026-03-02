@@ -37,12 +37,12 @@ const DataEntryForm = ({ editingRecord, onComplete, onCancelEdit }: DataEntryFor
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!date || !caseId || !department || !category || !amount || !paymentMethod) {
-      toast({ title: '請填寫所有欄位', variant: 'destructive' });
+      toast({ title: '請填寫所有欄位', description: '所有欄位均為必填項目', variant: 'destructive' });
       return;
     }
 
     if (caseId.length !== 7 || !/^\d{7}$/.test(caseId)) {
-      toast({ title: 'Case ID 必須為7位數字', variant: 'destructive' });
+      toast({ title: 'Case ID 格式錯誤', description: 'Case ID 必須輸入剛好 7 位數字（例如：DF1234567）', variant: 'destructive' });
       return;
     }
 
