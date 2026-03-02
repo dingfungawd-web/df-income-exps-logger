@@ -456,7 +456,7 @@ function doPost(e) {
   // ─── Claim 報銷 (人民幣) ───
   if (data.action === 'claimExpensesRMB') {
     var expSheet = getSheet('支出(人民幣)');
-    var claimSheet = getSheet('Claim記錄');
+    var claimSheet = getSheet('Claim記錄(人民幣)');
     var claimId = Utilities.getUuid();
     var claimDate = Utilities.formatDate(new Date(), 'Asia/Hong_Kong', 'yyyy-MM-dd');
     var expenseIds = data.expenseIds;
