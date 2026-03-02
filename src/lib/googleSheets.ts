@@ -203,7 +203,7 @@ function getSheet(name) {
       sheet.appendRow(['ID', '日期', '部門', '同事', '支出類別', '支出備註', '金額', '已Claim', 'Claim日期', 'Claim金額']);
     } else if (name === '用戶') {
       sheet.appendRow(['姓名', '密碼']);
-    } else if (name === 'Claim記錄') {
+    } else if (name === 'Claim記錄' || name === 'Claim記錄(人民幣)') {
       sheet.appendRow(['ID', '同事', 'Claim日期', '總金額', '支出ID列表']);
     } else if (name === '交數記錄') {
       sheet.appendRow(['ID', '同事', '交數日期', '金額', '收入ID']);
