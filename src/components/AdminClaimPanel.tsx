@@ -332,7 +332,7 @@ const AdminClaimPanel = () => {
                         </TableCell>
                         <TableCell>{exp.staff}</TableCell>
                         <TableCell><Badge variant="outline">{exp.category}</Badge></TableCell>
-                        <TableCell className="text-right font-semibold tabular-nums">${Number(exp.amount).toFixed(2)}</TableCell>
+                        <TableCell className="text-right font-semibold tabular-nums">{CURRENCY_SYMBOLS[exp.currency || 'HKD']}{Number(exp.amount).toFixed(2)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
