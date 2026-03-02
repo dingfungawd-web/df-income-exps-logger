@@ -144,14 +144,8 @@ export async function fetchClaimHistory(): Promise<ClaimRecord[]> {
 
 // ─── Clear All Records ───
 export async function clearAllRecords(): Promise<{ success: boolean; message: string }> {
-  const url = getScriptUrl();
-  const res = await fetch(url, {
-    method: 'POST',
-    body: JSON.stringify({ action: 'clearAllRecords' }),
-    redirect: 'follow',
-  });
-  if (!res.ok) throw new Error('清除記錄失敗');
-  return res.json();
+  return await postToScript({ action: 'clearAllRecords' });
+}
 }
 
 // ─── Auth ───
