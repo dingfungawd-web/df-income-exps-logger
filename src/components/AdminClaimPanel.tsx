@@ -117,7 +117,7 @@ const AdminClaimPanel = () => {
 
   const unhandedRevenues = useMemo(() => {
     return revenues
-      .filter(r => (r.paymentMethod === '現金' || r.paymentMethod === '支票') && !r.handed)
+      .filter(r => (r.paymentMethod === '現金' || r.paymentMethod === '支票') && !r.handed && r.staff !== 'admin')
       .filter(r => handoverStaff === 'all' || r.staff === handoverStaff)
       .sort((a, b) => b.date.localeCompare(a.date));
   }, [revenues, handoverStaff]);

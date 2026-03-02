@@ -355,7 +355,12 @@ function doPost(e) {
   if (data.action === 'addExpense') {
     var sheet = getSheet('支出');
     var id = Utilities.getUuid();
-    sheet.appendRow([id, data.date, data.department, data.staff, data.category, data.remarks || '', data.amount, false, '', 0]);
+    var isAdmin = (data.staff === 'admin');
+    if (isAdmin) {
+      sheet.appendRow([id, data.date, data.department, data.staff, data.category, data.remarks || '', data.amount, '', '', '']);
+    } else {
+      sheet.appendRow([id, data.date, data.department, data.staff, data.category, data.remarks || '', data.amount, false, '', 0]);
+    }
     return ContentService.createTextOutput(JSON.stringify({ success: true, id: id }))
       .setMimeType(ContentService.MimeType.JSON);
   }
