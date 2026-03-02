@@ -282,25 +282,12 @@ function doGet(e) {
   }
 
   if (action === 'getExpenses') {
-    var sheet = getSheet('支出');
-    var data = sheet.getDataRange().getValues();
-    var records = [];
-    for (var i = 1; i < data.length; i++) {
-      if (data[i][0] === '') continue;
-      records.push({
-        id: data[i][0],
-        date: data[i][1],
-        department: data[i][2],
-        staff: data[i][3],
-        category: data[i][4],
-        remarks: data[i][5] || '',
-        amount: data[i][6],
-        claimed: data[i][7] === true || data[i][7] === 'TRUE' || data[i][7] === 'true',
-        claimDate: data[i][8] || '',
-        claimAmount: data[i][9] || 0
-      });
-    }
-    return ContentService.createTextOutput(JSON.stringify({ records: records }))
+    return ContentService.createTextOutput(JSON.stringify({ records: readExpenseRecords('支出') }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  if (action === 'getExpensesRMB') {
+    return ContentService.createTextOutput(JSON.stringify({ records: readExpenseRecords('支出(人民幣)') }))
       .setMimeType(ContentService.MimeType.JSON);
   }
 
