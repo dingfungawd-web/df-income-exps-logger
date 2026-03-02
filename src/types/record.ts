@@ -4,6 +4,8 @@ export type PaymentMethod = '現金' | '支票' | '轉數快' | '微信支付' |
 
 export type ExpenseCategory = '八達通增值' | 'Call車' | '月租停車場' | '時租停車場' | '入油' | '貨物順豐運費' | '度尺工具' | '安裝工具' | '文具費用' | '貨倉飲品' | '其他';
 
+export type ExpenseCurrency = 'HKD' | 'RMB';
+
 export type RevenueCategory = '訂金' | '餘款';
 
 export interface RevenueRecord {
