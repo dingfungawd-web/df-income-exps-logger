@@ -411,6 +411,7 @@ const AdminClaimPanel = () => {
                       <TableHead className="font-semibold">日期</TableHead>
                       <TableHead className="font-semibold">同事</TableHead>
                       <TableHead className="font-semibold text-right">金額</TableHead>
+                      <TableHead className="font-semibold">幣種</TableHead>
                       <TableHead className="font-semibold">項目數</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -421,7 +422,12 @@ const AdminClaimPanel = () => {
                           {(() => { try { return format(parseISO(claim.claimDate), 'yyyy/MM/dd'); } catch { return claim.claimDate; } })()}
                         </TableCell>
                         <TableCell>{claim.staff}</TableCell>
-                        <TableCell className="text-right font-semibold tabular-nums">${Number(claim.totalAmount).toFixed(2)}</TableCell>
+                        <TableCell className="text-right font-semibold tabular-nums">{CURRENCY_SYMBOLS[claim.currency || 'HKD']}{Number(claim.totalAmount).toFixed(2)}</TableCell>
+                        <TableCell>
+                          <Badge variant={claim.currency === 'RMB' ? 'destructive' : 'secondary'} className="font-normal text-xs">
+                            {claim.currency || 'HKD'}
+                          </Badge>
+                        </TableCell>
                         <TableCell>{claim.expenseIds ? claim.expenseIds.split(',').length : 0} 筆</TableCell>
                       </TableRow>
                     ))}
