@@ -554,7 +554,7 @@ function doPost(e) {
 
   // ─── 清除所有收入及支出記錄 ───
   if (data.action === 'clearAllRecords') {
-    var sheets = ['收入', '支出', '支出(人民幣)', 'Claim記錄', '交數記錄'];
+    var sheets = ['收入', '支出', '支出(人民幣)', 'Claim記錄', 'Claim記錄(人民幣)', '交數記錄'];
     for (var s = 0; s < sheets.length; s++) {
       var sheet = getSheet(sheets[s]);
       var lastRow = sheet.getLastRow();
