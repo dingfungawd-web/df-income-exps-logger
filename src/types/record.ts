@@ -68,3 +68,7 @@ export const EXPENSE_CATEGORIES: ExpenseCategory[] = [
 ];
 
 export const REVENUE_CATEGORIES: RevenueCategory[] = ['訂金', '餘款'];
+
+export const EXPENSE_CURRENCIES: ExpenseCurrency[] = ['HKD', 'RMB'];
+export const CURRENCY_LABELS: Record<ExpenseCurrency, string> = { HKD: '港幣 (HKD)', RMB: '人民幣 (RMB)' };
+export const CURRENCY_SYMBOLS: Record<ExpenseCurrency, string> = { HKD: '$', RMB: '¥' };
