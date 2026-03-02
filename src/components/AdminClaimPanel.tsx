@@ -94,10 +94,19 @@ const AdminClaimPanel = () => {
       toast({ title: '請只選擇同一位同事的支出進行 Claim', variant: 'destructive' });
       return;
     }
+    // Check all selected have same currency
+    const selectedRecords = unclaimedExpenses.filter(e => ids.includes(e.id));
+    const currencies = new Set(selectedRecords.map(e => e.currency || 'HKD'));
+    if (currencies.size > 1) {
+      toast({ title: '請只選擇同一幣種的支出進行 Claim', variant: 'destructive' });
+      return;
+    }
+    const claimCurrency = selectedRecords[0]?.currency || 'HKD';
     setClaimLoading(true);
     try {
-      await claimExpenses(ids, staffToClaim, selectedTotal);
-      toast({ title: `已成功 Claim $${selectedTotal.toFixed(2)} 給 ${staffToClaim}` });
+      await claimExpenses(ids, staffToClaim, selectedTotal, claimCurrency);
+      const symbol = CURRENCY_SYMBOLS[claimCurrency];
+      toast({ title: `已成功 Claim ${symbol}${selectedTotal.toFixed(2)} 給 ${staffToClaim}` });
       setSelectedIds(new Set());
       await loadData();
     } catch (err) {
