@@ -62,8 +62,6 @@ const ExpenseRecordsTable = ({ onEdit, refreshKey }: ExpenseRecordsTableProps) =
     return true;
   });
 
-  const totalAmount = filtered.reduce((sum, r) => sum + r.amount, 0);
-  const unclaimedAmount = filtered.filter(r => !r.claimed).reduce((sum, r) => sum + r.amount, 0);
 
   return (
     <div className="space-y-4">
