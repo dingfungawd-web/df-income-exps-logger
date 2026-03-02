@@ -40,6 +40,7 @@ export interface ExpenseRecord {
   claimDate: string;
   claimAmount: number;
   remarks: string;
+  currency: ExpenseCurrency;
 }
 
 export interface StaffUser {
