@@ -20,7 +20,8 @@ interface DataEntryFormProps {
 }
 
 const DataEntryForm = ({ editingRecord, onComplete, onCancelEdit }: DataEntryFormProps) => {
-  const { staffName } = useStaff();
+  const { staffName, isAdmin } = useStaff();
+  const departmentOptions = isAdmin ? ADMIN_DEPARTMENTS : DEPARTMENTS;
   const { toast } = useToast();
   const [date, setDate] = useState<Date | undefined>(
     editingRecord ? new Date(editingRecord.date) : new Date()
