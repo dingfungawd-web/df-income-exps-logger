@@ -138,8 +138,10 @@ const ExpenseRecordsTable = ({ onEdit, refreshKey }: ExpenseRecordsTableProps) =
                       {record.currency || 'HKD'}
                     </Badge>
                   </TableCell>
-                  <TableCell>
-                    {record.claimed ? (
+                   <TableCell>
+                    {(record.staff === 'admin' || record.department === '老闆') ? (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    ) : record.claimed ? (
                       <Badge className="bg-success/15 text-success border-success/20" variant="outline">
                         <CheckCircle2 className="h-3 w-3 mr-1" />已Claim
                       </Badge>

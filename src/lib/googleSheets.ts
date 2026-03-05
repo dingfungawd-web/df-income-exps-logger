@@ -341,7 +341,8 @@ function doPost(e) {
     var sheet = getSheet('收入');
     var id = Utilities.getUuid();
     var isAdmin = (data.staff === 'admin');
-    var needHandover = !isAdmin && (data.paymentMethod === '現金' || data.paymentMethod === '支票');
+    var isBoss = (data.department === '老闆');
+    var needHandover = !isAdmin && !isBoss && (data.paymentMethod === '現金' || data.paymentMethod === '支票');
     sheet.appendRow([id, data.caseId || '', data.date, data.department, data.category || '', data.amount, data.paymentMethod, data.staff, needHandover ? false : '', needHandover ? '' : '']);
     return ContentService.createTextOutput(JSON.stringify({ success: true, id: id }))
       .setMimeType(ContentService.MimeType.JSON);
@@ -371,7 +372,8 @@ function doPost(e) {
     var sheet = getSheet('支出');
     var id = Utilities.getUuid();
     var isAdmin = (data.staff === 'admin');
-    if (isAdmin) {
+    var isBoss = (data.department === '老闆');
+    if (isAdmin || isBoss) {
       sheet.appendRow([id, data.date, data.department, data.staff, data.category, data.remarks || '', data.amount, '', '', '']);
     } else {
       sheet.appendRow([id, data.date, data.department, data.staff, data.category, data.remarks || '', data.amount, false, '', 0]);
@@ -403,7 +405,8 @@ function doPost(e) {
     var sheet = getSheet('支出(人民幣)');
     var id = Utilities.getUuid();
     var isAdmin = (data.staff === 'admin');
-    if (isAdmin) {
+    var isBoss = (data.department === '老闆');
+    if (isAdmin || isBoss) {
       sheet.appendRow([id, data.date, data.department, data.staff, data.category, data.remarks || '', data.amount, '', '', '']);
     } else {
       sheet.appendRow([id, data.date, data.department, data.staff, data.category, data.remarks || '', data.amount, false, '', 0]);
