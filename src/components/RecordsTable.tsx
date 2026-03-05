@@ -194,7 +194,7 @@ const RecordsTable = ({ onEdit, refreshKey }: RecordsTableProps) => {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {record.staff === 'admin' ? (
+                    {(record.staff === 'admin' || record.department === '老闆') ? (
                       <span className="text-xs text-muted-foreground">—</span>
                     ) : (record.paymentMethod === '現金' || record.paymentMethod === '支票') ? (
                       record.handed ? (
