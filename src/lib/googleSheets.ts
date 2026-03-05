@@ -405,7 +405,8 @@ function doPost(e) {
     var sheet = getSheet('支出(人民幣)');
     var id = Utilities.getUuid();
     var isAdmin = (data.staff === 'admin');
-    if (isAdmin) {
+    var isBoss = (data.department === '老闆');
+    if (isAdmin || isBoss) {
       sheet.appendRow([id, data.date, data.department, data.staff, data.category, data.remarks || '', data.amount, '', '', '']);
     } else {
       sheet.appendRow([id, data.date, data.department, data.staff, data.category, data.remarks || '', data.amount, false, '', 0]);
