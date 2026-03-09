@@ -360,6 +360,21 @@ function doPost(e) {
         sheet.getRange(i + 1, 6).setValue(data.amount);
         sheet.getRange(i + 1, 7).setValue(data.paymentMethod);
         sheet.getRange(i + 1, 8).setValue(data.staff);
+        // 重新計算是否需要交數
+        var isAdmin = (data.staff === 'admin');
+        var isBoss = (data.department === '老闆');
+        var needHandover = !isAdmin && !isBoss && (data.paymentMethod === '現金' || data.paymentMethod === '支票');
+        if (needHandover) {
+          // 如果之前未設定交數狀態，設為 false
+          var currentHanded = allData[i][8];
+          if (currentHanded !== true && currentHanded !== 'TRUE' && currentHanded !== 'true') {
+            sheet.getRange(i + 1, 9).setValue(false);
+          }
+        } else {
+          // 唔需要交數：清除已交數及交數日期
+          sheet.getRange(i + 1, 9).setValue('');
+          sheet.getRange(i + 1, 10).setValue('');
+        }
         break;
       }
     }
