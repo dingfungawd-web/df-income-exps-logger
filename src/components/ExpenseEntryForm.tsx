@@ -42,7 +42,7 @@ const ExpenseEntryForm = ({ editingRecord, onComplete, onCancelEdit }: ExpenseEn
       return;
     }
 
-    if (category === '其他' && !remarks.trim()) {
+    if ((category === '其他' || category === '貨款') && !remarks.trim()) {
       toast({ title: '請輸入備注', variant: 'destructive' });
       return;
     }
