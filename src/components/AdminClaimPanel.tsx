@@ -193,14 +193,20 @@ const AdminClaimPanel = () => {
   }
 
   return (
-    <Tabs defaultValue="handover" className="space-y-4">
-      <TabsList className="grid w-full grid-cols-5 h-11">
+    <Tabs defaultValue="dashboard" className="space-y-4">
+      <TabsList className="grid w-full grid-cols-6 h-11">
+        <TabsTrigger value="dashboard" className="text-xs gap-1"><BarChart3 className="h-4 w-4" />圖表</TabsTrigger>
         <TabsTrigger value="handover" className="text-xs gap-1"><Banknote className="h-4 w-4" />交數</TabsTrigger>
         <TabsTrigger value="claim" className="text-xs gap-1"><DollarSign className="h-4 w-4" />Claim</TabsTrigger>
         <TabsTrigger value="handover-history" className="text-xs gap-1"><History className="h-4 w-4" />交數記錄</TabsTrigger>
         <TabsTrigger value="history" className="text-xs gap-1"><History className="h-4 w-4" />Claim記錄</TabsTrigger>
         <TabsTrigger value="users" className="text-xs gap-1"><Users className="h-4 w-4" />帳戶</TabsTrigger>
       </TabsList>
+
+      {/* Dashboard */}
+      <TabsContent value="dashboard">
+        <AdminDashboard />
+      </TabsContent>
 
       {/* Handover Tab */}
       <TabsContent value="handover">
