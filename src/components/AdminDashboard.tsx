@@ -116,7 +116,7 @@ const AdminDashboard = () => {
         淨額: totalRevenue - totalExpense,
       };
     });
-  }, [revenues, expenses, timeRange, periodCount]);
+  }, [revenues, expenses, timeRange, periodCount, useCustomRange, customDateRange]);
 
   // Summary stats
   const summary = useMemo(() => {
