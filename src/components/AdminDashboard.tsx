@@ -228,7 +228,6 @@ const AdminDashboard = () => {
 
   const timeRangeLabels: Record<TimeRange, string> = {
     day: '日',
-    week: '周',
     month: '月',
     year: '年',
   };
@@ -238,36 +237,41 @@ const AdminDashboard = () => {
       { value: '1', label: '最近1天' },
       { value: '7', label: '最近7天' },
       { value: '14', label: '最近14天' },
-      { value: '30', label: '最近30天' },
-    ],
-    week: [
-      { value: '4', label: '最近4周' },
-      { value: '8', label: '最近8周' },
-      { value: '12', label: '最近12周' },
+      { value: 'custom', label: '自訂日期' },
     ],
     month: [
+      { value: '1', label: '最近1個月' },
+      { value: '2', label: '最近2個月' },
       { value: '3', label: '最近3個月' },
       { value: '6', label: '最近6個月' },
-      { value: '12', label: '最近12個月' },
     ],
     year: [
-      { value: '2', label: '最近2年' },
-      { value: '3', label: '最近3年' },
-      { value: '5', label: '最近5年' },
+      { value: '1', label: '最近1年' },
+      { value: '999', label: '全選' },
     ],
+  };
+
+  const handlePeriodChange = (v: string) => {
+    if (v === 'custom') {
+      setUseCustomRange(true);
+    } else {
+      setUseCustomRange(false);
+      setPeriodCount(Number(v));
+    }
   };
 
   return (
     <div className="space-y-4">
       {/* Filters */}
-      <div className="flex gap-2 flex-wrap">
+      <div className="flex gap-2 flex-wrap items-center">
         <div className="flex rounded-lg border bg-card overflow-hidden">
-          {(['day', 'week', 'month', 'year'] as TimeRange[]).map((t) => (
+          {(['day', 'month', 'year'] as TimeRange[]).map((t) => (
             <button
               key={t}
               onClick={() => {
                 setTimeRange(t);
-                setPeriodCount(Number(periodOptions[t][1]?.value || periodOptions[t][0].value));
+                setUseCustomRange(false);
+                setPeriodCount(Number(periodOptions[t][0].value));
               }}
               className={`px-3 py-1.5 text-xs font-medium transition-colors ${
                 timeRange === t
@@ -279,7 +283,10 @@ const AdminDashboard = () => {
             </button>
           ))}
         </div>
-        <Select value={String(periodCount)} onValueChange={(v) => setPeriodCount(Number(v))}>
+        <Select
+          value={useCustomRange ? 'custom' : String(periodCount)}
+          onValueChange={handlePeriodChange}
+        >
           <SelectTrigger className="h-8 w-[130px] text-xs">
             <SelectValue />
           </SelectTrigger>
@@ -289,6 +296,35 @@ const AdminDashboard = () => {
             ))}
           </SelectContent>
         </Select>
+
+        {/* Date range picker for day mode */}
+        {timeRange === 'day' && useCustomRange && (
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className={cn(
+                "h-8 text-xs gap-1.5",
+                !customDateRange?.from && "text-muted-foreground"
+              )}>
+                <CalendarIcon className="h-3.5 w-3.5" />
+                {customDateRange?.from ? (
+                  customDateRange.to ? (
+                    `${format(customDateRange.from, 'MM/dd')} - ${format(customDateRange.to, 'MM/dd')}`
+                  ) : format(customDateRange.from, 'MM/dd')
+                ) : '選擇日期範圍'}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="range"
+                selected={customDateRange}
+                onSelect={setCustomDateRange}
+                numberOfMonths={2}
+                disabled={(date) => date > new Date()}
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+        )}
       </div>
 
       {/* Summary Cards */}
