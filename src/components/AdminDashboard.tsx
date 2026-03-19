@@ -40,6 +40,8 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<TimeRange>('month');
   const [periodCount, setPeriodCount] = useState(6);
+  const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>();
+  const [useCustomRange, setUseCustomRange] = useState(false);
 
   useEffect(() => {
     const load = async () => {
