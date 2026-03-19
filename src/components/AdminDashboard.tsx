@@ -36,20 +36,31 @@ const PIE_COLORS = [
 const AdminDashboard = () => {
   const { toast } = useToast();
   const [revenues, setRevenues] = useState<RevenueRecord[]>([]);
-  const [expenses, setExpenses] = useState<ExpenseRecord[]>([]);
+  const [hkdExpenses, setHkdExpenses] = useState<ExpenseRecord[]>([]);
+  const [rmbExpenses, setRmbExpenses] = useState<ExpenseRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<TimeRange>('month');
   const [periodCount, setPeriodCount] = useState(6);
   const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>();
   const [useCustomRange, setUseCustomRange] = useState(false);
+  const [exchangeRate, setExchangeRate] = useState<number>(0.92); // default fallback CNY→HKD
 
   useEffect(() => {
     const load = async () => {
       setLoading(true);
       try {
-        const [revData, expData] = await Promise.all([fetchRecords(), fetchExpenses()]);
+        const [revData, expData, rate] = await Promise.all([
+          fetchRecords(),
+          fetchExpenses(),
+          fetch('https://open.er-api.com/v6/latest/CNY')
+            .then(r => r.json())
+            .then(d => d?.rates?.HKD ?? 0.92)
+            .catch(() => 0.92),
+        ]);
         setRevenues(revData);
-        setExpenses(expData.filter(e => (e.currency || 'HKD') === 'HKD'));
+        setHkdExpenses(expData.filter(e => (e.currency || 'HKD') === 'HKD'));
+        setRmbExpenses(expData.filter(e => e.currency === 'RMB'));
+        setExchangeRate(rate);
       } catch {
         toast({ title: '載入圖表資料失敗', variant: 'destructive' });
       } finally {
