@@ -159,10 +159,14 @@ const AdminDashboard = () => {
     }
   };
 
-  // Category breakdown for expenses
+  // Category breakdown for expenses (HKD + RMB converted)
   const expenseByCat = useMemo(() => {
     const { start, end } = getDateRange();
-    const filtered = expenses.filter(e => {
+    const allExpenses = [
+      ...hkdExpenses.map(e => ({ ...e, hkdAmount: Number(e.amount) })),
+      ...rmbExpenses.map(e => ({ ...e, hkdAmount: Math.round(Number(e.amount) * exchangeRate) })),
+    ];
+    const filtered = allExpenses.filter(e => {
       try {
         const d = parseISO(e.date);
         return isWithinInterval(d, { start, end });
@@ -171,13 +175,13 @@ const AdminDashboard = () => {
 
     const catMap: Record<string, number> = {};
     filtered.forEach(e => {
-      catMap[e.category] = (catMap[e.category] || 0) + Number(e.amount);
+      catMap[e.category] = (catMap[e.category] || 0) + e.hkdAmount;
     });
 
     return Object.entries(catMap)
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
-  }, [expenses, timeRange, periodCount, useCustomRange, customDateRange]);
+  }, [hkdExpenses, rmbExpenses, exchangeRate, timeRange, periodCount, useCustomRange, customDateRange]);
 
   // Payment method breakdown for revenue
   const revenueByPayment = useMemo(() => {
