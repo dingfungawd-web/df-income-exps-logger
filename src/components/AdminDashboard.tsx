@@ -65,42 +65,32 @@ const AdminDashboard = () => {
     let buckets: { start: Date; end: Date; label: string }[] = [];
 
     if (timeRange === 'day') {
-      for (let i = periodCount - 1; i >= 0; i--) {
-        const d = subDays(now, i);
-        buckets.push({
-          start: startOfDay(d),
-          end: endOfDay(d),
-          label: format(d, 'MM/dd'),
+      if (useCustomRange && customDateRange?.from && customDateRange?.to) {
+        const days = eachDayOfInterval({ start: customDateRange.from, end: customDateRange.to });
+        days.forEach(d => {
+          buckets.push({ start: startOfDay(d), end: endOfDay(d), label: format(d, 'MM/dd') });
         });
-      }
-    } else if (timeRange === 'week') {
-      for (let i = periodCount - 1; i >= 0; i--) {
-        const d = subWeeks(now, i);
-        const s = startOfWeek(d, { weekStartsOn: 1 });
-        const e = endOfWeek(d, { weekStartsOn: 1 });
-        buckets.push({
-          start: s,
-          end: e,
-          label: format(s, 'MM/dd'),
-        });
+      } else {
+        for (let i = periodCount - 1; i >= 0; i--) {
+          const d = subDays(now, i);
+          buckets.push({ start: startOfDay(d), end: endOfDay(d), label: format(d, 'MM/dd') });
+        }
       }
     } else if (timeRange === 'month') {
       for (let i = periodCount - 1; i >= 0; i--) {
         const d = subMonths(now, i);
-        buckets.push({
-          start: startOfMonth(d),
-          end: endOfMonth(d),
-          label: format(d, 'yyyy/MM'),
-        });
+        buckets.push({ start: startOfMonth(d), end: endOfMonth(d), label: format(d, 'yyyy/MM') });
       }
     } else {
-      for (let i = periodCount - 1; i >= 0; i--) {
+      // year - periodCount 999 means all
+      const allYears = [...revenues, ...expenses].map(r => {
+        try { return parseISO(r.date).getFullYear(); } catch { return null; }
+      }).filter((y): y is number => y !== null);
+      const minYear = allYears.length > 0 ? Math.min(...allYears) : now.getFullYear();
+      const yearCount = periodCount === 999 ? (now.getFullYear() - minYear + 1) : periodCount;
+      for (let i = yearCount - 1; i >= 0; i--) {
         const d = subYears(now, i);
-        buckets.push({
-          start: startOfYear(d),
-          end: endOfYear(d),
-          label: format(d, 'yyyy'),
-        });
+        buckets.push({ start: startOfYear(d), end: endOfYear(d), label: format(d, 'yyyy') });
       }
     }
 
