@@ -347,8 +347,13 @@ const AdminDashboard = () => {
         )}
       </div>
 
+      {/* Exchange Rate Badge */}
+      <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+        <span>💱 匯率: ¥1 = ${exchangeRate.toFixed(4)} HKD</span>
+      </div>
+
       {/* Summary Cards */}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <Card className="overflow-hidden">
           <CardContent className="p-3">
             <div className="flex items-center gap-1.5 mb-1">
@@ -362,9 +367,18 @@ const AdminDashboard = () => {
           <CardContent className="p-3">
             <div className="flex items-center gap-1.5 mb-1">
               <TrendingDown className="h-3.5 w-3.5 text-destructive" />
-              <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">總支出</span>
+              <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">總支出 (HKD)</span>
             </div>
-            <p className="text-sm font-bold tabular-nums text-foreground">{formatCurrency(summary.totalExpense)}</p>
+            <p className="text-sm font-bold tabular-nums text-foreground">{formatCurrency(summary.totalHkdExp)}</p>
+          </CardContent>
+        </Card>
+        <Card className="overflow-hidden border-destructive/30">
+          <CardContent className="p-3">
+            <div className="flex items-center gap-1.5 mb-1">
+              <TrendingDown className="h-3.5 w-3.5 text-destructive" />
+              <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">總支出 (RMB→HKD)</span>
+            </div>
+            <p className="text-sm font-bold tabular-nums text-destructive">{formatCurrency(summary.totalRmbExpConverted)}</p>
           </CardContent>
         </Card>
         <Card className="overflow-hidden">
