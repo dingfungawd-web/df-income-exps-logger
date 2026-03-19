@@ -169,22 +169,7 @@ const AdminDashboard = () => {
 
   // Payment method breakdown for revenue
   const revenueByPayment = useMemo(() => {
-    const now = new Date();
-    let start: Date, end: Date;
-    if (timeRange === 'day') {
-      start = startOfDay(subDays(now, periodCount - 1));
-      end = endOfDay(now);
-    } else if (timeRange === 'week') {
-      start = startOfWeek(subWeeks(now, periodCount - 1), { weekStartsOn: 1 });
-      end = endOfWeek(now, { weekStartsOn: 1 });
-    } else if (timeRange === 'month') {
-      start = startOfMonth(subMonths(now, periodCount - 1));
-      end = endOfMonth(now);
-    } else {
-      start = startOfYear(subYears(now, periodCount - 1));
-      end = endOfYear(now);
-    }
-
+    const { start, end } = getDateRange();
     const filtered = revenues.filter(r => {
       try {
         const d = parseISO(r.date);
@@ -200,7 +185,7 @@ const AdminDashboard = () => {
     return Object.entries(payMap)
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
-  }, [revenues, timeRange, periodCount]);
+  }, [revenues, timeRange, periodCount, useCustomRange, customDateRange]);
 
   const formatCurrency = (v: number) => `$${v.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
