@@ -224,10 +224,11 @@ const AdminDashboard = () => {
   const PieTooltip = ({ active, payload }: any) => {
     if (!active || !payload?.length) return null;
     const item = payload[0];
+    const pct = item.payload?.percent != null ? (item.payload.percent * 100).toFixed(1) : '';
     return (
       <div className="rounded-lg border bg-card p-3 shadow-lg">
         <p className="text-sm font-semibold text-card-foreground">{item.name}</p>
-        <p className="text-xs text-muted-foreground mt-1">{formatCurrency(item.value)}</p>
+        <p className="text-xs text-muted-foreground mt-1">{formatCurrency(item.value)}{pct ? ` (${pct}%)` : ''}</p>
       </div>
     );
   };
