@@ -36,20 +36,31 @@ const PIE_COLORS = [
 const AdminDashboard = () => {
   const { toast } = useToast();
   const [revenues, setRevenues] = useState<RevenueRecord[]>([]);
-  const [expenses, setExpenses] = useState<ExpenseRecord[]>([]);
+  const [hkdExpenses, setHkdExpenses] = useState<ExpenseRecord[]>([]);
+  const [rmbExpenses, setRmbExpenses] = useState<ExpenseRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<TimeRange>('month');
   const [periodCount, setPeriodCount] = useState(6);
   const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>();
   const [useCustomRange, setUseCustomRange] = useState(false);
+  const [exchangeRate, setExchangeRate] = useState<number>(0.92); // default fallback CNY→HKD
 
   useEffect(() => {
     const load = async () => {
       setLoading(true);
       try {
-        const [revData, expData] = await Promise.all([fetchRecords(), fetchExpenses()]);
+        const [revData, expData, rate] = await Promise.all([
+          fetchRecords(),
+          fetchExpenses(),
+          fetch('https://open.er-api.com/v6/latest/CNY')
+            .then(r => r.json())
+            .then(d => d?.rates?.HKD ?? 0.92)
+            .catch(() => 0.92),
+        ]);
         setRevenues(revData);
-        setExpenses(expData.filter(e => (e.currency || 'HKD') === 'HKD'));
+        setHkdExpenses(expData.filter(e => (e.currency || 'HKD') === 'HKD'));
+        setRmbExpenses(expData.filter(e => e.currency === 'RMB'));
+        setExchangeRate(rate);
       } catch {
         toast({ title: '載入圖表資料失敗', variant: 'destructive' });
       } finally {
@@ -83,7 +94,7 @@ const AdminDashboard = () => {
       }
     } else {
       // year - periodCount 999 means all
-      const allYears = [...revenues, ...expenses].map(r => {
+      const allYears = [...revenues, ...hkdExpenses, ...rmbExpenses].map(r => {
         try { return parseISO(r.date).getFullYear(); } catch { return null; }
       }).filter((y): y is number => y !== null);
       const minYear = allYears.length > 0 ? Math.min(...allYears) : now.getFullYear();
@@ -95,36 +106,41 @@ const AdminDashboard = () => {
     }
 
     return buckets.map(({ start, end, label }) => {
-      const revInRange = revenues.filter(r => {
-        try {
-          const d = parseISO(r.date);
-          return isWithinInterval(d, { start, end });
-        } catch { return false; }
-      });
-      const expInRange = expenses.filter(e => {
-        try {
-          const d = parseISO(e.date);
-          return isWithinInterval(d, { start, end });
-        } catch { return false; }
-      });
+      const filterByDate = <T extends { date: string }>(arr: T[]) =>
+        arr.filter(r => { try { return isWithinInterval(parseISO(r.date), { start, end }); } catch { return false; } });
+
+      const revInRange = filterByDate(revenues);
+      const hkdInRange = filterByDate(hkdExpenses);
+      const rmbInRange = filterByDate(rmbExpenses);
+
       const totalRevenue = revInRange.reduce((s, r) => s + Number(r.amount), 0);
-      const totalExpense = expInRange.reduce((s, e) => s + Number(e.amount), 0);
+      const totalHkdExp = hkdInRange.reduce((s, e) => s + Number(e.amount), 0);
+      const totalRmbExp = rmbInRange.reduce((s, e) => s + Number(e.amount), 0);
+      const rmbAsHkd = Math.round(totalRmbExp * exchangeRate);
+      const totalExpense = totalHkdExp + rmbAsHkd;
+
       return {
         label,
         收入: totalRevenue,
         支出: totalExpense,
+        '支出(HKD)': totalHkdExp,
+        '支出(RMB→HKD)': rmbAsHkd,
         淨額: totalRevenue - totalExpense,
       };
     });
-  }, [revenues, expenses, timeRange, periodCount, useCustomRange, customDateRange]);
+  }, [revenues, hkdExpenses, rmbExpenses, exchangeRate, timeRange, periodCount, useCustomRange, customDateRange]);
 
   // Summary stats
   const summary = useMemo(() => {
     const totalRevenue = chartData.reduce((s, d) => s + d.收入, 0);
     const totalExpense = chartData.reduce((s, d) => s + d.支出, 0);
+    const totalHkdExp = chartData.reduce((s, d) => s + d['支出(HKD)'], 0);
+    const totalRmbExpConverted = chartData.reduce((s, d) => s + d['支出(RMB→HKD)'], 0);
     return {
       totalRevenue,
       totalExpense,
+      totalHkdExp,
+      totalRmbExpConverted,
       net: totalRevenue - totalExpense,
     };
   }, [chartData]);
@@ -147,10 +163,14 @@ const AdminDashboard = () => {
     }
   };
 
-  // Category breakdown for expenses
+  // Category breakdown for expenses (HKD + RMB converted)
   const expenseByCat = useMemo(() => {
     const { start, end } = getDateRange();
-    const filtered = expenses.filter(e => {
+    const allExpenses = [
+      ...hkdExpenses.map(e => ({ ...e, hkdAmount: Number(e.amount) })),
+      ...rmbExpenses.map(e => ({ ...e, hkdAmount: Math.round(Number(e.amount) * exchangeRate) })),
+    ];
+    const filtered = allExpenses.filter(e => {
       try {
         const d = parseISO(e.date);
         return isWithinInterval(d, { start, end });
@@ -159,13 +179,13 @@ const AdminDashboard = () => {
 
     const catMap: Record<string, number> = {};
     filtered.forEach(e => {
-      catMap[e.category] = (catMap[e.category] || 0) + Number(e.amount);
+      catMap[e.category] = (catMap[e.category] || 0) + e.hkdAmount;
     });
 
     return Object.entries(catMap)
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
-  }, [expenses, timeRange, periodCount, useCustomRange, customDateRange]);
+  }, [hkdExpenses, rmbExpenses, exchangeRate, timeRange, periodCount, useCustomRange, customDateRange]);
 
   // Payment method breakdown for revenue
   const revenueByPayment = useMemo(() => {
@@ -327,8 +347,13 @@ const AdminDashboard = () => {
         )}
       </div>
 
+      {/* Exchange Rate Badge */}
+      <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+        <span>💱 匯率: ¥1 = ${exchangeRate.toFixed(4)} HKD</span>
+      </div>
+
       {/* Summary Cards */}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <Card className="overflow-hidden">
           <CardContent className="p-3">
             <div className="flex items-center gap-1.5 mb-1">
@@ -342,9 +367,18 @@ const AdminDashboard = () => {
           <CardContent className="p-3">
             <div className="flex items-center gap-1.5 mb-1">
               <TrendingDown className="h-3.5 w-3.5 text-destructive" />
-              <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">總支出</span>
+              <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">總支出 (HKD)</span>
             </div>
-            <p className="text-sm font-bold tabular-nums text-foreground">{formatCurrency(summary.totalExpense)}</p>
+            <p className="text-sm font-bold tabular-nums text-foreground">{formatCurrency(summary.totalHkdExp)}</p>
+          </CardContent>
+        </Card>
+        <Card className="overflow-hidden border-destructive/30">
+          <CardContent className="p-3">
+            <div className="flex items-center gap-1.5 mb-1">
+              <TrendingDown className="h-3.5 w-3.5 text-destructive" />
+              <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">總支出 (RMB→HKD)</span>
+            </div>
+            <p className="text-sm font-bold tabular-nums text-destructive">{formatCurrency(summary.totalRmbExpConverted)}</p>
           </CardContent>
         </Card>
         <Card className="overflow-hidden">
