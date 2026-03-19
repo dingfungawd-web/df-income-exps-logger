@@ -1,16 +1,20 @@
 import { useState, useEffect, useMemo } from 'react';
-import { format, parseISO, startOfDay, startOfWeek, startOfMonth, startOfYear, endOfDay, endOfWeek, endOfMonth, endOfYear, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, isWithinInterval, subDays, subWeeks, subMonths, subYears } from 'date-fns';
+import { format, parseISO, startOfDay, startOfMonth, startOfYear, endOfDay, endOfMonth, endOfYear, eachDayOfInterval, isWithinInterval, subDays, subMonths, subYears, differenceInCalendarDays, min as minDate } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
-import { Loader2, TrendingUp, TrendingDown, Wallet, ArrowUpDown } from 'lucide-react';
+import { Loader2, TrendingUp, TrendingDown, Wallet, CalendarIcon } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 import { type RevenueRecord, type ExpenseRecord, CURRENCY_SYMBOLS } from '@/types/record';
 import { fetchRecords, fetchExpenses } from '@/lib/googleSheets';
 import { useToast } from '@/hooks/use-toast';
+import type { DateRange } from 'react-day-picker';
 
-type TimeRange = 'day' | 'week' | 'month' | 'year';
+type TimeRange = 'day' | 'month' | 'year';
 
 const CHART_COLORS = {
   revenue: 'hsl(152, 60%, 40%)',
@@ -36,6 +40,8 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<TimeRange>('month');
   const [periodCount, setPeriodCount] = useState(6);
+  const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>();
+  const [useCustomRange, setUseCustomRange] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -59,42 +65,32 @@ const AdminDashboard = () => {
     let buckets: { start: Date; end: Date; label: string }[] = [];
 
     if (timeRange === 'day') {
-      for (let i = periodCount - 1; i >= 0; i--) {
-        const d = subDays(now, i);
-        buckets.push({
-          start: startOfDay(d),
-          end: endOfDay(d),
-          label: format(d, 'MM/dd'),
+      if (useCustomRange && customDateRange?.from && customDateRange?.to) {
+        const days = eachDayOfInterval({ start: customDateRange.from, end: customDateRange.to });
+        days.forEach(d => {
+          buckets.push({ start: startOfDay(d), end: endOfDay(d), label: format(d, 'MM/dd') });
         });
-      }
-    } else if (timeRange === 'week') {
-      for (let i = periodCount - 1; i >= 0; i--) {
-        const d = subWeeks(now, i);
-        const s = startOfWeek(d, { weekStartsOn: 1 });
-        const e = endOfWeek(d, { weekStartsOn: 1 });
-        buckets.push({
-          start: s,
-          end: e,
-          label: format(s, 'MM/dd'),
-        });
+      } else {
+        for (let i = periodCount - 1; i >= 0; i--) {
+          const d = subDays(now, i);
+          buckets.push({ start: startOfDay(d), end: endOfDay(d), label: format(d, 'MM/dd') });
+        }
       }
     } else if (timeRange === 'month') {
       for (let i = periodCount - 1; i >= 0; i--) {
         const d = subMonths(now, i);
-        buckets.push({
-          start: startOfMonth(d),
-          end: endOfMonth(d),
-          label: format(d, 'yyyy/MM'),
-        });
+        buckets.push({ start: startOfMonth(d), end: endOfMonth(d), label: format(d, 'yyyy/MM') });
       }
     } else {
-      for (let i = periodCount - 1; i >= 0; i--) {
+      // year - periodCount 999 means all
+      const allYears = [...revenues, ...expenses].map(r => {
+        try { return parseISO(r.date).getFullYear(); } catch { return null; }
+      }).filter((y): y is number => y !== null);
+      const minYear = allYears.length > 0 ? Math.min(...allYears) : now.getFullYear();
+      const yearCount = periodCount === 999 ? (now.getFullYear() - minYear + 1) : periodCount;
+      for (let i = yearCount - 1; i >= 0; i--) {
         const d = subYears(now, i);
-        buckets.push({
-          start: startOfYear(d),
-          end: endOfYear(d),
-          label: format(d, 'yyyy'),
-        });
+        buckets.push({ start: startOfYear(d), end: endOfYear(d), label: format(d, 'yyyy') });
       }
     }
 
@@ -120,7 +116,7 @@ const AdminDashboard = () => {
         淨額: totalRevenue - totalExpense,
       };
     });
-  }, [revenues, expenses, timeRange, periodCount]);
+  }, [revenues, expenses, timeRange, periodCount, useCustomRange, customDateRange]);
 
   // Summary stats
   const summary = useMemo(() => {
@@ -133,24 +129,27 @@ const AdminDashboard = () => {
     };
   }, [chartData]);
 
+  // Helper to get date range for pie charts
+  const getDateRange = () => {
+    const now = new Date();
+    if (timeRange === 'day') {
+      if (useCustomRange && customDateRange?.from && customDateRange?.to) {
+        return { start: startOfDay(customDateRange.from), end: endOfDay(customDateRange.to) };
+      }
+      return { start: startOfDay(subDays(now, periodCount - 1)), end: endOfDay(now) };
+    } else if (timeRange === 'month') {
+      return { start: startOfMonth(subMonths(now, periodCount - 1)), end: endOfMonth(now) };
+    } else {
+      if (periodCount === 999) {
+        return { start: new Date(1970, 0, 1), end: endOfYear(now) };
+      }
+      return { start: startOfYear(subYears(now, periodCount - 1)), end: endOfYear(now) };
+    }
+  };
+
   // Category breakdown for expenses
   const expenseByCat = useMemo(() => {
-    const now = new Date();
-    let start: Date, end: Date;
-    if (timeRange === 'day') {
-      start = startOfDay(subDays(now, periodCount - 1));
-      end = endOfDay(now);
-    } else if (timeRange === 'week') {
-      start = startOfWeek(subWeeks(now, periodCount - 1), { weekStartsOn: 1 });
-      end = endOfWeek(now, { weekStartsOn: 1 });
-    } else if (timeRange === 'month') {
-      start = startOfMonth(subMonths(now, periodCount - 1));
-      end = endOfMonth(now);
-    } else {
-      start = startOfYear(subYears(now, periodCount - 1));
-      end = endOfYear(now);
-    }
-
+    const { start, end } = getDateRange();
     const filtered = expenses.filter(e => {
       try {
         const d = parseISO(e.date);
@@ -166,26 +165,11 @@ const AdminDashboard = () => {
     return Object.entries(catMap)
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
-  }, [expenses, timeRange, periodCount]);
+  }, [expenses, timeRange, periodCount, useCustomRange, customDateRange]);
 
   // Payment method breakdown for revenue
   const revenueByPayment = useMemo(() => {
-    const now = new Date();
-    let start: Date, end: Date;
-    if (timeRange === 'day') {
-      start = startOfDay(subDays(now, periodCount - 1));
-      end = endOfDay(now);
-    } else if (timeRange === 'week') {
-      start = startOfWeek(subWeeks(now, periodCount - 1), { weekStartsOn: 1 });
-      end = endOfWeek(now, { weekStartsOn: 1 });
-    } else if (timeRange === 'month') {
-      start = startOfMonth(subMonths(now, periodCount - 1));
-      end = endOfMonth(now);
-    } else {
-      start = startOfYear(subYears(now, periodCount - 1));
-      end = endOfYear(now);
-    }
-
+    const { start, end } = getDateRange();
     const filtered = revenues.filter(r => {
       try {
         const d = parseISO(r.date);
@@ -201,7 +185,7 @@ const AdminDashboard = () => {
     return Object.entries(payMap)
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
-  }, [revenues, timeRange, periodCount]);
+  }, [revenues, timeRange, periodCount, useCustomRange, customDateRange]);
 
   const formatCurrency = (v: number) => `$${v.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
@@ -244,7 +228,6 @@ const AdminDashboard = () => {
 
   const timeRangeLabels: Record<TimeRange, string> = {
     day: '日',
-    week: '周',
     month: '月',
     year: '年',
   };
@@ -254,36 +237,41 @@ const AdminDashboard = () => {
       { value: '1', label: '最近1天' },
       { value: '7', label: '最近7天' },
       { value: '14', label: '最近14天' },
-      { value: '30', label: '最近30天' },
-    ],
-    week: [
-      { value: '4', label: '最近4周' },
-      { value: '8', label: '最近8周' },
-      { value: '12', label: '最近12周' },
+      { value: 'custom', label: '自訂日期' },
     ],
     month: [
+      { value: '1', label: '最近1個月' },
+      { value: '2', label: '最近2個月' },
       { value: '3', label: '最近3個月' },
       { value: '6', label: '最近6個月' },
-      { value: '12', label: '最近12個月' },
     ],
     year: [
-      { value: '2', label: '最近2年' },
-      { value: '3', label: '最近3年' },
-      { value: '5', label: '最近5年' },
+      { value: '1', label: '最近1年' },
+      { value: '999', label: '全選' },
     ],
+  };
+
+  const handlePeriodChange = (v: string) => {
+    if (v === 'custom') {
+      setUseCustomRange(true);
+    } else {
+      setUseCustomRange(false);
+      setPeriodCount(Number(v));
+    }
   };
 
   return (
     <div className="space-y-4">
       {/* Filters */}
-      <div className="flex gap-2 flex-wrap">
+      <div className="flex gap-2 flex-wrap items-center">
         <div className="flex rounded-lg border bg-card overflow-hidden">
-          {(['day', 'week', 'month', 'year'] as TimeRange[]).map((t) => (
+          {(['day', 'month', 'year'] as TimeRange[]).map((t) => (
             <button
               key={t}
               onClick={() => {
                 setTimeRange(t);
-                setPeriodCount(Number(periodOptions[t][1]?.value || periodOptions[t][0].value));
+                setUseCustomRange(false);
+                setPeriodCount(Number(periodOptions[t][0].value));
               }}
               className={`px-3 py-1.5 text-xs font-medium transition-colors ${
                 timeRange === t
@@ -295,7 +283,10 @@ const AdminDashboard = () => {
             </button>
           ))}
         </div>
-        <Select value={String(periodCount)} onValueChange={(v) => setPeriodCount(Number(v))}>
+        <Select
+          value={useCustomRange ? 'custom' : String(periodCount)}
+          onValueChange={handlePeriodChange}
+        >
           <SelectTrigger className="h-8 w-[130px] text-xs">
             <SelectValue />
           </SelectTrigger>
@@ -305,6 +296,35 @@ const AdminDashboard = () => {
             ))}
           </SelectContent>
         </Select>
+
+        {/* Date range picker for day mode */}
+        {timeRange === 'day' && useCustomRange && (
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className={cn(
+                "h-8 text-xs gap-1.5",
+                !customDateRange?.from && "text-muted-foreground"
+              )}>
+                <CalendarIcon className="h-3.5 w-3.5" />
+                {customDateRange?.from ? (
+                  customDateRange.to ? (
+                    `${format(customDateRange.from, 'MM/dd')} - ${format(customDateRange.to, 'MM/dd')}`
+                  ) : format(customDateRange.from, 'MM/dd')
+                ) : '選擇日期範圍'}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="range"
+                selected={customDateRange}
+                onSelect={setCustomDateRange}
+                numberOfMonths={2}
+                disabled={(date) => date > new Date()}
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+        )}
       </div>
 
       {/* Summary Cards */}
