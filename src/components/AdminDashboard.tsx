@@ -1,16 +1,20 @@
 import { useState, useEffect, useMemo } from 'react';
-import { format, parseISO, startOfDay, startOfWeek, startOfMonth, startOfYear, endOfDay, endOfWeek, endOfMonth, endOfYear, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, isWithinInterval, subDays, subWeeks, subMonths, subYears } from 'date-fns';
+import { format, parseISO, startOfDay, startOfMonth, startOfYear, endOfDay, endOfMonth, endOfYear, eachDayOfInterval, isWithinInterval, subDays, subMonths, subYears, differenceInCalendarDays, min as minDate } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
-import { Loader2, TrendingUp, TrendingDown, Wallet, ArrowUpDown } from 'lucide-react';
+import { Loader2, TrendingUp, TrendingDown, Wallet, CalendarIcon } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 import { type RevenueRecord, type ExpenseRecord, CURRENCY_SYMBOLS } from '@/types/record';
 import { fetchRecords, fetchExpenses } from '@/lib/googleSheets';
 import { useToast } from '@/hooks/use-toast';
+import type { DateRange } from 'react-day-picker';
 
-type TimeRange = 'day' | 'week' | 'month' | 'year';
+type TimeRange = 'day' | 'month' | 'year';
 
 const CHART_COLORS = {
   revenue: 'hsl(152, 60%, 40%)',
