@@ -94,7 +94,7 @@ const AdminDashboard = () => {
       }
     } else {
       // year - periodCount 999 means all
-      const allYears = [...revenues, ...expenses].map(r => {
+      const allYears = [...revenues, ...hkdExpenses, ...rmbExpenses].map(r => {
         try { return parseISO(r.date).getFullYear(); } catch { return null; }
       }).filter((y): y is number => y !== null);
       const minYear = allYears.length > 0 ? Math.min(...allYears) : now.getFullYear();
@@ -106,28 +106,29 @@ const AdminDashboard = () => {
     }
 
     return buckets.map(({ start, end, label }) => {
-      const revInRange = revenues.filter(r => {
-        try {
-          const d = parseISO(r.date);
-          return isWithinInterval(d, { start, end });
-        } catch { return false; }
-      });
-      const expInRange = expenses.filter(e => {
-        try {
-          const d = parseISO(e.date);
-          return isWithinInterval(d, { start, end });
-        } catch { return false; }
-      });
+      const filterByDate = <T extends { date: string }>(arr: T[]) =>
+        arr.filter(r => { try { return isWithinInterval(parseISO(r.date), { start, end }); } catch { return false; } });
+
+      const revInRange = filterByDate(revenues);
+      const hkdInRange = filterByDate(hkdExpenses);
+      const rmbInRange = filterByDate(rmbExpenses);
+
       const totalRevenue = revInRange.reduce((s, r) => s + Number(r.amount), 0);
-      const totalExpense = expInRange.reduce((s, e) => s + Number(e.amount), 0);
+      const totalHkdExp = hkdInRange.reduce((s, e) => s + Number(e.amount), 0);
+      const totalRmbExp = rmbInRange.reduce((s, e) => s + Number(e.amount), 0);
+      const rmbAsHkd = Math.round(totalRmbExp * exchangeRate);
+      const totalExpense = totalHkdExp + rmbAsHkd;
+
       return {
         label,
         收入: totalRevenue,
         支出: totalExpense,
+        '支出(HKD)': totalHkdExp,
+        '支出(RMB→HKD)': rmbAsHkd,
         淨額: totalRevenue - totalExpense,
       };
     });
-  }, [revenues, expenses, timeRange, periodCount, useCustomRange, customDateRange]);
+  }, [revenues, hkdExpenses, rmbExpenses, exchangeRate, timeRange, periodCount, useCustomRange, customDateRange]);
 
   // Summary stats
   const summary = useMemo(() => {
