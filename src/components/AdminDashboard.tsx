@@ -134,9 +134,13 @@ const AdminDashboard = () => {
   const summary = useMemo(() => {
     const totalRevenue = chartData.reduce((s, d) => s + d.收入, 0);
     const totalExpense = chartData.reduce((s, d) => s + d.支出, 0);
+    const totalHkdExp = chartData.reduce((s, d) => s + d['支出(HKD)'], 0);
+    const totalRmbExpConverted = chartData.reduce((s, d) => s + d['支出(RMB→HKD)'], 0);
     return {
       totalRevenue,
       totalExpense,
+      totalHkdExp,
+      totalRmbExpConverted,
       net: totalRevenue - totalExpense,
     };
   }, [chartData]);
