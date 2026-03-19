@@ -250,6 +250,7 @@ const AdminDashboard = () => {
 
   const periodOptions: Record<TimeRange, { value: string; label: string }[]> = {
     day: [
+      { value: '1', label: '最近1天' },
       { value: '7', label: '最近7天' },
       { value: '14', label: '最近14天' },
       { value: '30', label: '最近30天' },
