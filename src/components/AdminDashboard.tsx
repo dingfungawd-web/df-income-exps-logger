@@ -129,24 +129,27 @@ const AdminDashboard = () => {
     };
   }, [chartData]);
 
+  // Helper to get date range for pie charts
+  const getDateRange = () => {
+    const now = new Date();
+    if (timeRange === 'day') {
+      if (useCustomRange && customDateRange?.from && customDateRange?.to) {
+        return { start: startOfDay(customDateRange.from), end: endOfDay(customDateRange.to) };
+      }
+      return { start: startOfDay(subDays(now, periodCount - 1)), end: endOfDay(now) };
+    } else if (timeRange === 'month') {
+      return { start: startOfMonth(subMonths(now, periodCount - 1)), end: endOfMonth(now) };
+    } else {
+      if (periodCount === 999) {
+        return { start: new Date(1970, 0, 1), end: endOfYear(now) };
+      }
+      return { start: startOfYear(subYears(now, periodCount - 1)), end: endOfYear(now) };
+    }
+  };
+
   // Category breakdown for expenses
   const expenseByCat = useMemo(() => {
-    const now = new Date();
-    let start: Date, end: Date;
-    if (timeRange === 'day') {
-      start = startOfDay(subDays(now, periodCount - 1));
-      end = endOfDay(now);
-    } else if (timeRange === 'week') {
-      start = startOfWeek(subWeeks(now, periodCount - 1), { weekStartsOn: 1 });
-      end = endOfWeek(now, { weekStartsOn: 1 });
-    } else if (timeRange === 'month') {
-      start = startOfMonth(subMonths(now, periodCount - 1));
-      end = endOfMonth(now);
-    } else {
-      start = startOfYear(subYears(now, periodCount - 1));
-      end = endOfYear(now);
-    }
-
+    const { start, end } = getDateRange();
     const filtered = expenses.filter(e => {
       try {
         const d = parseISO(e.date);
@@ -162,7 +165,7 @@ const AdminDashboard = () => {
     return Object.entries(catMap)
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
-  }, [expenses, timeRange, periodCount]);
+  }, [expenses, timeRange, periodCount, useCustomRange, customDateRange]);
 
   // Payment method breakdown for revenue
   const revenueByPayment = useMemo(() => {
