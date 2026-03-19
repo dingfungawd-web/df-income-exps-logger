@@ -224,10 +224,11 @@ const AdminDashboard = () => {
   const PieTooltip = ({ active, payload }: any) => {
     if (!active || !payload?.length) return null;
     const item = payload[0];
+    const pct = item.payload?.percent != null ? (item.payload.percent * 100).toFixed(1) : '';
     return (
       <div className="rounded-lg border bg-card p-3 shadow-lg">
         <p className="text-sm font-semibold text-card-foreground">{item.name}</p>
-        <p className="text-xs text-muted-foreground mt-1">{formatCurrency(item.value)}</p>
+        <p className="text-xs text-muted-foreground mt-1">{formatCurrency(item.value)}{pct ? ` (${pct}%)` : ''}</p>
       </div>
     );
   };
@@ -417,12 +418,16 @@ const AdminDashboard = () => {
                   </ResponsiveContainer>
                 </div>
                 <div className="flex flex-wrap gap-x-3 gap-y-1 px-2 mt-1">
-                  {expenseByCat.slice(0, 6).map((c, i) => (
-                    <div key={c.name} className="flex items-center gap-1 text-[10px]">
-                      <div className="h-2 w-2 rounded-sm shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
-                      <span className="text-muted-foreground">{c.name}</span>
-                    </div>
-                  ))}
+                  {(() => {
+                    const total = expenseByCat.reduce((s, c) => s + c.value, 0);
+                    return expenseByCat.slice(0, 6).map((c, i) => (
+                      <div key={c.name} className="flex items-center gap-1 text-[10px]">
+                        <div className="h-2 w-2 rounded-sm shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
+                        <span className="text-muted-foreground">{c.name}</span>
+                        <span className="font-medium text-foreground">{total > 0 ? ((c.value / total) * 100).toFixed(1) : 0}%</span>
+                      </div>
+                    ));
+                  })()}
                 </div>
               </>
             )}
@@ -461,12 +466,16 @@ const AdminDashboard = () => {
                   </ResponsiveContainer>
                 </div>
                 <div className="flex flex-wrap gap-x-3 gap-y-1 px-2 mt-1">
-                  {revenueByPayment.map((c, i) => (
-                    <div key={c.name} className="flex items-center gap-1 text-[10px]">
-                      <div className="h-2 w-2 rounded-sm shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
-                      <span className="text-muted-foreground">{c.name}</span>
-                    </div>
-                  ))}
+                  {(() => {
+                    const total = revenueByPayment.reduce((s, c) => s + c.value, 0);
+                    return revenueByPayment.map((c, i) => (
+                      <div key={c.name} className="flex items-center gap-1 text-[10px]">
+                        <div className="h-2 w-2 rounded-sm shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
+                        <span className="text-muted-foreground">{c.name}</span>
+                        <span className="font-medium text-foreground">{total > 0 ? ((c.value / total) * 100).toFixed(1) : 0}%</span>
+                      </div>
+                    ));
+                  })()}
                 </div>
               </>
             )}
