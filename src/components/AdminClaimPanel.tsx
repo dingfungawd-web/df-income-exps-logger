@@ -486,11 +486,12 @@ const AdminClaimPanel = () => {
                       <TableHead className="font-semibold text-right">金額</TableHead>
                       <TableHead className="font-semibold">幣種</TableHead>
                       <TableHead className="font-semibold">項目數</TableHead>
+                      <TableHead className="font-semibold w-12">操作</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {claims.sort((a, b) => b.claimDate.localeCompare(a.claimDate)).map((claim) => (
-                      <TableRow key={claim.id}>
+                      <TableRow key={claim.id} className="group">
                         <TableCell className="font-medium">
                           {(() => { try { return format(parseISO(claim.claimDate), 'yyyy/MM/dd'); } catch { return claim.claimDate; } })()}
                         </TableCell>
@@ -502,6 +503,27 @@ const AdminClaimPanel = () => {
                           </Badge>
                         </TableCell>
                         <TableCell>{claim.expenseIds ? claim.expenseIds.split(',').length : 0} 筆</TableCell>
+                        <TableCell>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive hover:bg-destructive/10">
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>確定刪除此 Claim 記錄？</AlertDialogTitle>
+                                <AlertDialogDescription>刪除後對應的支出記錄將還原為「未 Claim」狀態。</AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>取消</AlertDialogCancel>
+                                <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={async () => {
+                                  try { await deleteClaimRecord(claim.id, claim.currency || 'HKD'); toast({ title: 'Claim 記錄已刪除，支出已還原為未 Claim' }); loadData(); } catch { toast({ title: '刪除失敗', variant: 'destructive' }); }
+                                }}>確定刪除</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
