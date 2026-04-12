@@ -258,11 +258,12 @@ const AdminClaimPanel = () => {
                       <TableHead className="font-semibold">收款方式</TableHead>
                       <TableHead className="font-semibold">部門</TableHead>
                       <TableHead className="font-semibold text-right">金額</TableHead>
+                      <TableHead className="font-semibold w-12">操作</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {unhandedRevenues.map((rev) => (
-                      <TableRow key={rev.id} className="hover:bg-muted/30 cursor-pointer" onClick={() => toggleHandoverSelect(rev.id)}>
+                      <TableRow key={rev.id} className="hover:bg-muted/30 cursor-pointer group" onClick={() => toggleHandoverSelect(rev.id)}>
                         <TableCell>
                           <Checkbox checked={handoverSelectedIds.has(rev.id)} onCheckedChange={() => toggleHandoverSelect(rev.id)} />
                         </TableCell>
@@ -273,6 +274,27 @@ const AdminClaimPanel = () => {
                         <TableCell><Badge variant="outline">{rev.paymentMethod}</Badge></TableCell>
                         <TableCell><Badge variant="secondary" className="font-normal">{rev.department}</Badge></TableCell>
                         <TableCell className="text-right font-semibold tabular-nums">${Number(rev.amount).toFixed(2)}</TableCell>
+                        <TableCell>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive hover:bg-destructive/10" onClick={(e) => e.stopPropagation()}>
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>確定刪除此收入記錄？</AlertDialogTitle>
+                                <AlertDialogDescription>此操作無法撤銷，記錄將從 Google Sheet 中永久刪除。</AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>取消</AlertDialogCancel>
+                                <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={async () => {
+                                  try { await deleteRecord(rev.id); toast({ title: '收入記錄已刪除' }); loadData(); } catch { toast({ title: '刪除失敗', variant: 'destructive' }); }
+                                }}>確定刪除</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
