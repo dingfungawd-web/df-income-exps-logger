@@ -134,7 +134,14 @@ const ExpenseEntryForm = ({ editingRecord, onComplete, onCancelEdit }: ExpenseEn
         <Select value={category} onValueChange={(v) => setCategory(v as ExpenseCategory)}>
           <SelectTrigger className="h-11"><SelectValue placeholder="選擇類別" /></SelectTrigger>
           <SelectContent>
-            {EXPENSE_CATEGORIES.map((c) => (<SelectItem key={c} value={c}>{c}</SelectItem>))}
+            {(() => {
+              if (isAdmin) {
+                const prioritized: ExpenseCategory[] = ['退款', '賠償', '貨款', '其他'];
+                const rest = EXPENSE_CATEGORIES.filter(c => !prioritized.includes(c));
+                return [...prioritized, ...rest].map((c) => (<SelectItem key={c} value={c}>{c}</SelectItem>));
+              }
+              return EXPENSE_CATEGORIES.map((c) => (<SelectItem key={c} value={c}>{c}</SelectItem>));
+            })()}
           </SelectContent>
         </Select>
       </div>

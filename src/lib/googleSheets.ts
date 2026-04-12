@@ -129,6 +129,15 @@ export async function updateExpense(record: ExpenseRecord): Promise<void> {
   await postToScript({ action, ...record });
 }
 
+export async function deleteRecord(id: string): Promise<void> {
+  await postToScript({ action: 'deleteRecord', id });
+}
+
+export async function deleteExpense(id: string, currency: 'HKD' | 'RMB' = 'HKD'): Promise<void> {
+  const action = currency === 'RMB' ? 'deleteExpenseRMB' : 'deleteExpense';
+  await postToScript({ action, id });
+}
+
 // ─── Claim ───
 export async function claimExpenses(expenseIds: string[], staff: string, totalAmount: number, currency: 'HKD' | 'RMB' = 'HKD'): Promise<void> {
   const action = currency === 'RMB' ? 'claimExpensesRMB' : 'claimExpenses';
@@ -567,6 +576,51 @@ function doPost(e) {
       }
     }
     return ContentService.createTextOutput(JSON.stringify({ success: false, message: '找不到此用戶' }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // ─── 刪除單筆收入記錄 ───
+  if (data.action === 'deleteRecord') {
+    var sheet = getSheet('收入');
+    var allData = sheet.getDataRange().getValues();
+    for (var i = 1; i < allData.length; i++) {
+      if (allData[i][0] === data.id) {
+        sheet.deleteRow(i + 1);
+        return ContentService.createTextOutput(JSON.stringify({ success: true }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+    return ContentService.createTextOutput(JSON.stringify({ success: false, message: '找不到此記錄' }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // ─── 刪除單筆支出記錄 (港幣) ───
+  if (data.action === 'deleteExpense') {
+    var sheet = getSheet('支出');
+    var allData = sheet.getDataRange().getValues();
+    for (var i = 1; i < allData.length; i++) {
+      if (allData[i][0] === data.id) {
+        sheet.deleteRow(i + 1);
+        return ContentService.createTextOutput(JSON.stringify({ success: true }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+    return ContentService.createTextOutput(JSON.stringify({ success: false, message: '找不到此記錄' }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // ─── 刪除單筆支出記錄 (人民幣) ───
+  if (data.action === 'deleteExpenseRMB') {
+    var sheet = getSheet('支出(人民幣)');
+    var allData = sheet.getDataRange().getValues();
+    for (var i = 1; i < allData.length; i++) {
+      if (allData[i][0] === data.id) {
+        sheet.deleteRow(i + 1);
+        return ContentService.createTextOutput(JSON.stringify({ success: true }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+    return ContentService.createTextOutput(JSON.stringify({ success: false, message: '找不到此記錄' }))
       .setMimeType(ContentService.MimeType.JSON);
   }
 
