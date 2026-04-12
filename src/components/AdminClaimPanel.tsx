@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { type ExpenseRecord, type ClaimRecord, type StaffUser, type RevenueRecord, type HandoverRecord, CURRENCY_SYMBOLS } from '@/types/record';
-import { fetchExpenses, fetchClaimHistory, fetchAllUsers, claimExpenses, deleteUser, fetchRecords, confirmHandover, fetchHandoverHistory, clearAllRecords } from '@/lib/googleSheets';
+import { fetchExpenses, fetchClaimHistory, fetchAllUsers, claimExpenses, deleteUser, fetchRecords, confirmHandover, fetchHandoverHistory, clearAllRecords, deleteRecord, deleteExpense, deleteClaimRecord, deleteHandoverRecord } from '@/lib/googleSheets';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 
@@ -258,11 +258,12 @@ const AdminClaimPanel = () => {
                       <TableHead className="font-semibold">收款方式</TableHead>
                       <TableHead className="font-semibold">部門</TableHead>
                       <TableHead className="font-semibold text-right">金額</TableHead>
+                      <TableHead className="font-semibold w-12">操作</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {unhandedRevenues.map((rev) => (
-                      <TableRow key={rev.id} className="hover:bg-muted/30 cursor-pointer" onClick={() => toggleHandoverSelect(rev.id)}>
+                      <TableRow key={rev.id} className="hover:bg-muted/30 cursor-pointer group" onClick={() => toggleHandoverSelect(rev.id)}>
                         <TableCell>
                           <Checkbox checked={handoverSelectedIds.has(rev.id)} onCheckedChange={() => toggleHandoverSelect(rev.id)} />
                         </TableCell>
@@ -273,6 +274,27 @@ const AdminClaimPanel = () => {
                         <TableCell><Badge variant="outline">{rev.paymentMethod}</Badge></TableCell>
                         <TableCell><Badge variant="secondary" className="font-normal">{rev.department}</Badge></TableCell>
                         <TableCell className="text-right font-semibold tabular-nums">${Number(rev.amount).toFixed(2)}</TableCell>
+                        <TableCell>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive hover:bg-destructive/10" onClick={(e) => e.stopPropagation()}>
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>確定刪除此收入記錄？</AlertDialogTitle>
+                                <AlertDialogDescription>此操作無法撤銷，記錄將從 Google Sheet 中永久刪除。</AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>取消</AlertDialogCancel>
+                                <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={async () => {
+                                  try { await deleteRecord(rev.id); toast({ title: '收入記錄已刪除' }); loadData(); } catch { toast({ title: '刪除失敗', variant: 'destructive' }); }
+                                }}>確定刪除</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -333,11 +355,12 @@ const AdminClaimPanel = () => {
                       <TableHead className="font-semibold">類別</TableHead>
                       <TableHead className="font-semibold text-right">金額</TableHead>
                       <TableHead className="font-semibold">幣種</TableHead>
+                      <TableHead className="font-semibold w-12">操作</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {unclaimedExpenses.map((exp) => (
-                      <TableRow key={exp.id} className="hover:bg-muted/30 cursor-pointer" onClick={() => toggleSelect(exp.id)}>
+                      <TableRow key={exp.id} className="hover:bg-muted/30 cursor-pointer group" onClick={() => toggleSelect(exp.id)}>
                         <TableCell>
                           <Checkbox checked={selectedIds.has(exp.id)} onCheckedChange={() => toggleSelect(exp.id)} />
                         </TableCell>
@@ -351,6 +374,27 @@ const AdminClaimPanel = () => {
                           <Badge variant={exp.currency === 'RMB' ? 'destructive' : 'secondary'} className="font-normal text-xs">
                             {exp.currency || 'HKD'}
                           </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive hover:bg-destructive/10" onClick={(e) => e.stopPropagation()}>
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>確定刪除此支出記錄？</AlertDialogTitle>
+                                <AlertDialogDescription>此操作無法撤銷，記錄將從 Google Sheet 中永久刪除。</AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>取消</AlertDialogCancel>
+                                <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={async () => {
+                                  try { await deleteExpense(exp.id, exp.currency || 'HKD'); toast({ title: '支出記錄已刪除' }); loadData(); } catch { toast({ title: '刪除失敗', variant: 'destructive' }); }
+                                }}>確定刪除</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -380,17 +424,39 @@ const AdminClaimPanel = () => {
                       <TableHead className="font-semibold">同事</TableHead>
                       <TableHead className="font-semibold text-right">金額</TableHead>
                       <TableHead className="font-semibold">項目數</TableHead>
+                      <TableHead className="font-semibold w-12">操作</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {handoverHistory.sort((a, b) => b.handoverDate.localeCompare(a.handoverDate)).map((h) => (
-                      <TableRow key={h.id}>
+                      <TableRow key={h.id} className="group">
                         <TableCell className="font-medium">
                           {(() => { try { return format(parseISO(h.handoverDate), 'yyyy/MM/dd'); } catch { return h.handoverDate; } })()}
                         </TableCell>
                         <TableCell>{h.staff}</TableCell>
                         <TableCell className="text-right font-semibold tabular-nums">${Number(h.totalAmount).toFixed(2)}</TableCell>
                         <TableCell>{h.revenueIds ? h.revenueIds.split(',').length : 0} 筆</TableCell>
+                        <TableCell>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive hover:bg-destructive/10">
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>確定刪除此交數記錄？</AlertDialogTitle>
+                                <AlertDialogDescription>刪除後對應的收入記錄將還原為「未交數」狀態。</AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>取消</AlertDialogCancel>
+                                <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={async () => {
+                                  try { await deleteHandoverRecord(h.id); toast({ title: '交數記錄已刪除，收入已還原為未交數' }); loadData(); } catch { toast({ title: '刪除失敗', variant: 'destructive' }); }
+                                }}>確定刪除</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -420,11 +486,12 @@ const AdminClaimPanel = () => {
                       <TableHead className="font-semibold text-right">金額</TableHead>
                       <TableHead className="font-semibold">幣種</TableHead>
                       <TableHead className="font-semibold">項目數</TableHead>
+                      <TableHead className="font-semibold w-12">操作</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {claims.sort((a, b) => b.claimDate.localeCompare(a.claimDate)).map((claim) => (
-                      <TableRow key={claim.id}>
+                      <TableRow key={claim.id} className="group">
                         <TableCell className="font-medium">
                           {(() => { try { return format(parseISO(claim.claimDate), 'yyyy/MM/dd'); } catch { return claim.claimDate; } })()}
                         </TableCell>
@@ -436,6 +503,27 @@ const AdminClaimPanel = () => {
                           </Badge>
                         </TableCell>
                         <TableCell>{claim.expenseIds ? claim.expenseIds.split(',').length : 0} 筆</TableCell>
+                        <TableCell>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive hover:bg-destructive/10">
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>確定刪除此 Claim 記錄？</AlertDialogTitle>
+                                <AlertDialogDescription>刪除後對應的支出記錄將還原為「未 Claim」狀態。</AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>取消</AlertDialogCancel>
+                                <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={async () => {
+                                  try { await deleteClaimRecord(claim.id, claim.currency || 'HKD'); toast({ title: 'Claim 記錄已刪除，支出已還原為未 Claim' }); loadData(); } catch { toast({ title: '刪除失敗', variant: 'destructive' }); }
+                                }}>確定刪除</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
