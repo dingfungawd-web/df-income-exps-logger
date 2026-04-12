@@ -138,6 +138,17 @@ export async function deleteExpense(id: string, currency: 'HKD' | 'RMB' = 'HKD')
   await postToScript({ action, id });
 }
 
+// ─── Delete Claim Record (reverse claim status) ───
+export async function deleteClaimRecord(id: string, currency: 'HKD' | 'RMB' = 'HKD'): Promise<void> {
+  const action = currency === 'RMB' ? 'deleteClaimRecordRMB' : 'deleteClaimRecord';
+  await postToScript({ action, id });
+}
+
+// ─── Delete Handover Record (reverse handover status) ───
+export async function deleteHandoverRecord(id: string): Promise<void> {
+  await postToScript({ action: 'deleteHandoverRecord', id });
+}
+
 // ─── Claim ───
 export async function claimExpenses(expenseIds: string[], staff: string, totalAmount: number, currency: 'HKD' | 'RMB' = 'HKD'): Promise<void> {
   const action = currency === 'RMB' ? 'claimExpensesRMB' : 'claimExpenses';
