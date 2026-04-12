@@ -635,8 +635,99 @@ function doPost(e) {
       .setMimeType(ContentService.MimeType.JSON);
   }
 
+  // ─── 刪除 Claim 記錄 (港幣) 並還原支出狀態 ───
+  if (data.action === 'deleteClaimRecord') {
+    var claimSheet = getSheet('Claim記錄');
+    var expSheet = getSheet('支出');
+    var claimData2 = claimSheet.getDataRange().getValues();
+    for (var i = 1; i < claimData2.length; i++) {
+      if (claimData2[i][0] === data.id) {
+        var expIds = String(claimData2[i][4]).split(',');
+        var expData = expSheet.getDataRange().getValues();
+        for (var j = 1; j < expData.length; j++) {
+          if (expIds.indexOf(String(expData[j][0])) > -1) {
+            expSheet.getRange(j + 1, 8).setValue(false);
+            expSheet.getRange(j + 1, 9).setValue('');
+            expSheet.getRange(j + 1, 10).setValue(0);
+          }
+        }
+        claimSheet.deleteRow(i + 1);
+        return ContentService.createTextOutput(JSON.stringify({ success: true }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+    return ContentService.createTextOutput(JSON.stringify({ success: false, message: '找不到此 Claim 記錄' }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // ─── 刪除 Claim 記錄 (人民幣) 並還原支出狀態 ───
+  if (data.action === 'deleteClaimRecordRMB') {
+    var claimSheet = getSheet('Claim記錄(人民幣)');
+    var expSheet = getSheet('支出(人民幣)');
+    var claimData2 = claimSheet.getDataRange().getValues();
+    for (var i = 1; i < claimData2.length; i++) {
+      if (claimData2[i][0] === data.id) {
+        var expIds = String(claimData2[i][4]).split(',');
+        var expData = expSheet.getDataRange().getValues();
+        for (var j = 1; j < expData.length; j++) {
+          if (expIds.indexOf(String(expData[j][0])) > -1) {
+            expSheet.getRange(j + 1, 8).setValue(false);
+            expSheet.getRange(j + 1, 9).setValue('');
+            expSheet.getRange(j + 1, 10).setValue(0);
+          }
+        }
+        claimSheet.deleteRow(i + 1);
+        return ContentService.createTextOutput(JSON.stringify({ success: true }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+    return ContentService.createTextOutput(JSON.stringify({ success: false, message: '找不到此 Claim 記錄' }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // ─── 刪除交數記錄並還原收入狀態 ───
+  if (data.action === 'deleteHandoverRecord') {
+    var hoSheet = getSheet('交數記錄');
+    var revSheet = getSheet('收入');
+    var hoData = hoSheet.getDataRange().getValues();
+    for (var i = 1; i < hoData.length; i++) {
+      if (hoData[i][0] === data.id) {
+        var revId = String(hoData[i][4]);
+        var revData = revSheet.getDataRange().getValues();
+        for (var j = 1; j < revData.length; j++) {
+          if (String(revData[j][0]) === revId) {
+            revSheet.getRange(j + 1, 9).setValue(false);
+            revSheet.getRange(j + 1, 10).setValue('');
+            break;
+          }
+        }
+        hoSheet.deleteRow(i + 1);
+        return ContentService.createTextOutput(JSON.stringify({ success: true }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+    return ContentService.createTextOutput(JSON.stringify({ success: false, message: '找不到此交數記錄' }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
   // ─── 清除所有收入及支出記錄 ───
   if (data.action === 'clearAllRecords') {
+    var sheets = ['收入', '支出', '支出(人民幣)', 'Claim記錄', 'Claim記錄(人民幣)', '交數記錄'];
+    for (var s = 0; s < sheets.length; s++) {
+      var sheet = getSheet(sheets[s]);
+      var lastRow = sheet.getLastRow();
+      if (lastRow > 1) {
+        sheet.deleteRows(2, lastRow - 1);
+      }
+    }
+    return ContentService.createTextOutput(JSON.stringify({ success: true, message: '已清除所有收入及支出記錄' }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  return ContentService.createTextOutput(JSON.stringify({ error: '未知操作' }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+`;
     var sheets = ['收入', '支出', '支出(人民幣)', 'Claim記錄', 'Claim記錄(人民幣)', '交數記錄'];
     for (var s = 0; s < sheets.length; s++) {
       var sheet = getSheet(sheets[s]);
