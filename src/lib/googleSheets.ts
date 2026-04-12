@@ -149,6 +149,17 @@ export async function deleteHandoverRecord(id: string): Promise<void> {
   await postToScript({ action: 'deleteHandoverRecord', id });
 }
 
+// ─── Update Claim Record ───
+export async function updateClaimRecord(id: string, updates: { staff: string; claimDate: string; totalAmount: number }, currency: 'HKD' | 'RMB' = 'HKD'): Promise<void> {
+  const action = currency === 'RMB' ? 'updateClaimRecordRMB' : 'updateClaimRecord';
+  await postToScript({ action, id, ...updates });
+}
+
+// ─── Update Handover Record ───
+export async function updateHandoverRecord(id: string, updates: { staff: string; handoverDate: string; totalAmount: number }): Promise<void> {
+  await postToScript({ action: 'updateHandoverRecord', id, ...updates });
+}
+
 // ─── Claim ───
 export async function claimExpenses(expenseIds: string[], staff: string, totalAmount: number, currency: 'HKD' | 'RMB' = 'HKD'): Promise<void> {
   const action = currency === 'RMB' ? 'claimExpensesRMB' : 'claimExpenses';
