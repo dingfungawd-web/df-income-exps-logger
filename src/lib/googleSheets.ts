@@ -728,19 +728,3 @@ function doPost(e) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 `;
-    var sheets = ['收入', '支出', '支出(人民幣)', 'Claim記錄', 'Claim記錄(人民幣)', '交數記錄'];
-    for (var s = 0; s < sheets.length; s++) {
-      var sheet = getSheet(sheets[s]);
-      var lastRow = sheet.getLastRow();
-      if (lastRow > 1) {
-        sheet.deleteRows(2, lastRow - 1);
-      }
-    }
-    return ContentService.createTextOutput(JSON.stringify({ success: true, message: '已清除所有收入及支出記錄' }))
-      .setMimeType(ContentService.MimeType.JSON);
-  }
-
-  return ContentService.createTextOutput(JSON.stringify({ error: '未知操作' }))
-    .setMimeType(ContentService.MimeType.JSON);
-}
-`;
