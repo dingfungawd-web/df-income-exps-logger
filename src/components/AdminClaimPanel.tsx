@@ -424,17 +424,39 @@ const AdminClaimPanel = () => {
                       <TableHead className="font-semibold">同事</TableHead>
                       <TableHead className="font-semibold text-right">金額</TableHead>
                       <TableHead className="font-semibold">項目數</TableHead>
+                      <TableHead className="font-semibold w-12">操作</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {handoverHistory.sort((a, b) => b.handoverDate.localeCompare(a.handoverDate)).map((h) => (
-                      <TableRow key={h.id}>
+                      <TableRow key={h.id} className="group">
                         <TableCell className="font-medium">
                           {(() => { try { return format(parseISO(h.handoverDate), 'yyyy/MM/dd'); } catch { return h.handoverDate; } })()}
                         </TableCell>
                         <TableCell>{h.staff}</TableCell>
                         <TableCell className="text-right font-semibold tabular-nums">${Number(h.totalAmount).toFixed(2)}</TableCell>
                         <TableCell>{h.revenueIds ? h.revenueIds.split(',').length : 0} 筆</TableCell>
+                        <TableCell>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive hover:bg-destructive/10">
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>確定刪除此交數記錄？</AlertDialogTitle>
+                                <AlertDialogDescription>刪除後對應的收入記錄將還原為「未交數」狀態。</AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>取消</AlertDialogCancel>
+                                <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={async () => {
+                                  try { await deleteHandoverRecord(h.id); toast({ title: '交數記錄已刪除，收入已還原為未交數' }); loadData(); } catch { toast({ title: '刪除失敗', variant: 'destructive' }); }
+                                }}>確定刪除</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
