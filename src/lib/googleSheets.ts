@@ -129,6 +129,15 @@ export async function updateExpense(record: ExpenseRecord): Promise<void> {
   await postToScript({ action, ...record });
 }
 
+export async function deleteRecord(id: string): Promise<void> {
+  await postToScript({ action: 'deleteRecord', id });
+}
+
+export async function deleteExpense(id: string, currency: 'HKD' | 'RMB' = 'HKD'): Promise<void> {
+  const action = currency === 'RMB' ? 'deleteExpenseRMB' : 'deleteExpense';
+  await postToScript({ action, id });
+}
+
 // ─── Claim ───
 export async function claimExpenses(expenseIds: string[], staff: string, totalAmount: number, currency: 'HKD' | 'RMB' = 'HKD'): Promise<void> {
   const action = currency === 'RMB' ? 'claimExpensesRMB' : 'claimExpenses';

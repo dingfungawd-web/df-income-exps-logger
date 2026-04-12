@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
-import { Pencil, Loader2, Search, Filter, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Pencil, Trash2, Loader2, Search, Filter, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { type RevenueRecord, DEPARTMENTS, PAYMENT_METHODS } from '@/types/record';
-import { fetchRecords } from '@/lib/googleSheets';
+import { fetchRecords, deleteRecord } from '@/lib/googleSheets';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useStaff } from '@/contexts/StaffContext';
 import { useToast } from '@/hooks/use-toast';
 
@@ -155,7 +156,7 @@ const RecordsTable = ({ onEdit, refreshKey }: RecordsTableProps) => {
                 <TableHead className="font-semibold text-right">金額</TableHead>
                 <TableHead className="font-semibold">收款方式</TableHead>
                 <TableHead className="font-semibold">交數狀態</TableHead>
-                <TableHead className="font-semibold w-12">修改記錄</TableHead>
+                <TableHead className="font-semibold w-12">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -211,14 +212,54 @@ const RecordsTable = ({ onEdit, refreshKey }: RecordsTableProps) => {
                     )}
                   </TableCell>
                   <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => onEdit(record)}
-                      className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onEdit(record)}
+                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      {isAdmin && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>確定刪除此收入記錄？</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                此操作無法撤銷，記錄將從 Google Sheet 中永久刪除。
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>取消</AlertDialogCancel>
+                              <AlertDialogAction
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                onClick={async () => {
+                                  try {
+                                    await deleteRecord(record.id);
+                                    toast({ title: '收入記錄已刪除' });
+                                    loadRecords();
+                                  } catch {
+                                    toast({ title: '刪除失敗', variant: 'destructive' });
+                                  }
+                                }}
+                              >
+                                確定刪除
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

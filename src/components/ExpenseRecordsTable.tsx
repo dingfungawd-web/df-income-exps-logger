@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
-import { Pencil, Loader2, Search, Filter, CheckCircle2 } from 'lucide-react';
+import { Pencil, Trash2, Loader2, Search, Filter, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { type ExpenseRecord, DEPARTMENTS, EXPENSE_CATEGORIES, CURRENCY_SYMBOLS } from '@/types/record';
-import { fetchExpenses } from '@/lib/googleSheets';
+import { fetchExpenses, deleteExpense } from '@/lib/googleSheets';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useStaff } from '@/contexts/StaffContext';
 import { useToast } from '@/hooks/use-toast';
 
@@ -118,7 +119,7 @@ const ExpenseRecordsTable = ({ onEdit, refreshKey }: ExpenseRecordsTableProps) =
                 <TableHead className="font-semibold text-right">金額</TableHead>
                 <TableHead className="font-semibold">幣種</TableHead>
                 <TableHead className="font-semibold">狀態</TableHead>
-                <TableHead className="font-semibold w-12">修改記錄</TableHead>
+                <TableHead className="font-semibold w-12">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -150,11 +151,51 @@ const ExpenseRecordsTable = ({ onEdit, refreshKey }: ExpenseRecordsTableProps) =
                     )}
                   </TableCell>
                   <TableCell>
-                    {!record.claimed && (
-                      <Button variant="ghost" size="icon" onClick={() => onEdit(record)} className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                    )}
+                    <div className="flex gap-1">
+                      {!record.claimed && (
+                        <Button variant="ghost" size="icon" onClick={() => onEdit(record)} className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                      {isAdmin && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>確定刪除此支出記錄？</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                此操作無法撤銷，記錄將從 Google Sheet 中永久刪除。
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>取消</AlertDialogCancel>
+                              <AlertDialogAction
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                onClick={async () => {
+                                  try {
+                                    await deleteExpense(record.id, record.currency || 'HKD');
+                                    toast({ title: '支出記錄已刪除' });
+                                    loadRecords();
+                                  } catch {
+                                    toast({ title: '刪除失敗', variant: 'destructive' });
+                                  }
+                                }}
+                              >
+                                確定刪除
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
