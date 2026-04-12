@@ -149,6 +149,17 @@ export async function deleteHandoverRecord(id: string): Promise<void> {
   await postToScript({ action: 'deleteHandoverRecord', id });
 }
 
+// ─── Update Claim Record ───
+export async function updateClaimRecord(id: string, updates: { staff: string; claimDate: string; totalAmount: number }, currency: 'HKD' | 'RMB' = 'HKD'): Promise<void> {
+  const action = currency === 'RMB' ? 'updateClaimRecordRMB' : 'updateClaimRecord';
+  await postToScript({ action, id, ...updates });
+}
+
+// ─── Update Handover Record ───
+export async function updateHandoverRecord(id: string, updates: { staff: string; handoverDate: string; totalAmount: number }): Promise<void> {
+  await postToScript({ action: 'updateHandoverRecord', id, ...updates });
+}
+
 // ─── Claim ───
 export async function claimExpenses(expenseIds: string[], staff: string, totalAmount: number, currency: 'HKD' | 'RMB' = 'HKD'): Promise<void> {
   const action = currency === 'RMB' ? 'claimExpensesRMB' : 'claimExpenses';
@@ -702,6 +713,57 @@ function doPost(e) {
           }
         }
         hoSheet.deleteRow(i + 1);
+        return ContentService.createTextOutput(JSON.stringify({ success: true }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+    return ContentService.createTextOutput(JSON.stringify({ success: false, message: '找不到此交數記錄' }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // ─── 修改 Claim 記錄 (港幣) ───
+  if (data.action === 'updateClaimRecord') {
+    var claimSheet = getSheet('Claim記錄');
+    var claimData2 = claimSheet.getDataRange().getValues();
+    for (var i = 1; i < claimData2.length; i++) {
+      if (claimData2[i][0] === data.id) {
+        claimSheet.getRange(i + 1, 2).setValue(data.staff);
+        claimSheet.getRange(i + 1, 3).setValue(data.claimDate);
+        claimSheet.getRange(i + 1, 4).setValue(data.totalAmount);
+        return ContentService.createTextOutput(JSON.stringify({ success: true }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+    return ContentService.createTextOutput(JSON.stringify({ success: false, message: '找不到此 Claim 記錄' }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // ─── 修改 Claim 記錄 (人民幣) ───
+  if (data.action === 'updateClaimRecordRMB') {
+    var claimSheet = getSheet('Claim記錄(人民幣)');
+    var claimData2 = claimSheet.getDataRange().getValues();
+    for (var i = 1; i < claimData2.length; i++) {
+      if (claimData2[i][0] === data.id) {
+        claimSheet.getRange(i + 1, 2).setValue(data.staff);
+        claimSheet.getRange(i + 1, 3).setValue(data.claimDate);
+        claimSheet.getRange(i + 1, 4).setValue(data.totalAmount);
+        return ContentService.createTextOutput(JSON.stringify({ success: true }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+    return ContentService.createTextOutput(JSON.stringify({ success: false, message: '找不到此 Claim 記錄' }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // ─── 修改交數記錄 ───
+  if (data.action === 'updateHandoverRecord') {
+    var hoSheet = getSheet('交數記錄');
+    var hoData = hoSheet.getDataRange().getValues();
+    for (var i = 1; i < hoData.length; i++) {
+      if (hoData[i][0] === data.id) {
+        hoSheet.getRange(i + 1, 2).setValue(data.staff);
+        hoSheet.getRange(i + 1, 3).setValue(data.handoverDate);
+        hoSheet.getRange(i + 1, 4).setValue(data.totalAmount);
         return ContentService.createTextOutput(JSON.stringify({ success: true }))
           .setMimeType(ContentService.MimeType.JSON);
       }
