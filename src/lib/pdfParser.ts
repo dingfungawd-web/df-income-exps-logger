@@ -11,7 +11,7 @@ export interface ParsedTransaction {
 
 // Keyword → category mapping for auto-classification
 const CATEGORY_RULES: { pattern: RegExp; category: ExpenseCategory; remarks?: string }[] = [
-  { pattern: /HKeToll|Autotoll/i, category: '隧道費', remarks: '隧道費' },
+  { pattern: /HKeToll|Autotoll/i, category: '時租停車場', remarks: '隧道費' },
   { pattern: /GOGO ENERGY/i, category: '入油', remarks: '入油' },
   { pattern: /SHELL|ESSO|CALTEX|SINOPEC|中石化/i, category: '入油', remarks: '入油' },
   { pattern: /DIDI Taxi|DiDi/i, category: 'Call車' },
