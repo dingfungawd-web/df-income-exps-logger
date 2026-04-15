@@ -15,7 +15,7 @@ const CATEGORY_RULES: { pattern: RegExp; category: ExpenseCategory; remarks?: st
   { pattern: /GOGO ENERGY/i, category: '入油', remarks: '入油' },
   { pattern: /SHELL|ESSO|CALTEX|SINOPEC|中石化/i, category: '入油', remarks: '入油' },
   { pattern: /DIDI Taxi|DiDi/i, category: 'Call車' },
-  { pattern: /TAOBAO/i, category: '貨款', remarks: '淘寶' },
+  { pattern: /ALP\*Taobao|TAOBAO/i, category: '貨款', remarks: '淘寶' },
   { pattern: /Google\s*AD/i, category: '其他', remarks: 'Google廣告費' },
   { pattern: /HKBN/i, category: '其他', remarks: '寬頻月費' },
   { pattern: /FACEBK|FACEBOOK|META/i, category: '其他', remarks: 'Meta收費' },
@@ -23,6 +23,10 @@ const CATEGORY_RULES: { pattern: RegExp; category: ExpenseCategory; remarks?: st
   { pattern: /TUBEBUDDY/i, category: '其他', remarks: 'TubeBuddy' },
   { pattern: /順豐|S\.?F\.?\s*EXPRESS/i, category: '貨物順豐運費' },
   { pattern: /PARKING|停車/i, category: '月租停車場' },
+  { pattern: /MANUS AI/i, category: '其他', remarks: 'Manus AI' },
+  { pattern: /MAKE\.COM|WWW\.MAKE\.COM/i, category: '其他', remarks: 'Make.com' },
+  { pattern: /MOOVUP/i, category: '其他', remarks: 'Moovup招聘' },
+  { pattern: /KPay/i, category: '其他' },
 ];
 
 function classifyTransaction(description: string): { category: ExpenseCategory; remarks: string } {
@@ -44,7 +48,8 @@ export function parseHSBCStatement(pages: string[], statementYear?: number): Par
   
   // Detect statement date for year context
   let detectedYear = year;
-  const stmtDateMatch = pages.join('\n').match(/Statement date[^]*?(\d{1,2}\s+[A-Z]{3}\s+(\d{4}))/i);
+  const allText = pages.join('\n');
+  const stmtDateMatch = allText.match(/(?:Statement date|結單日)[^]*?(\d{1,2}\s+[A-Z]{3}\s+(\d{4}))/i);
   if (stmtDateMatch) {
     detectedYear = parseInt(stmtDateMatch[2]);
   }
@@ -70,10 +75,45 @@ export function parseHSBCStatement(pages: string[], statementYear?: number): Par
     /^Information for/i,
     /minimum payment/i,
     /EXCHANGE RATE/i,
+    /^Post date/i,
+    /^Cardholder/i,
+    /^Page \d/i,
+    /Statement date/i,
+    /Account number/i,
+    /^For important/i,
+    /^card reporting/i,
+    /^please visit/i,
+    /^Thank you/i,
+    /^If you are/i,
+    /^crossed cheque/i,
+    /^Corporation/i,
+    /Cheque number/i,
+    /BY AUTOPAY$/i,
+    /^PO BOX/i,
+    /^NO\.\s*\d/i,
+    /滙豐/,
+    /BUSINESS CARD/i,
+    /World Business/i,
+    /^CHEUNG/i,
+    /^5592/i,
+    /^HKD\d/i,
+    /^Current minimum/i,
+    /^Please pay by/i,
+    /^Overdue/i,
+    /^Total minimum/i,
+    /www\.hsbc/i,
+    /85227488288/i,
+    /^Amount \(HKD\)/i,
+    /Description of/i,
   ];
 
   // Card number line (sub-account header)
   const CARD_LINE = /^\d{4}\s+\d{4}\s+\d{4}\s+\d{4}/;
+
+  // Primary pattern: "14FEB 13FEB HKeToll (Autotoll) Hong Kong HK 361.00"
+  // Foreign currency: "25FEB 25FEB FACEBK *SZRTSFHXE2 DUBLIN 2 IE USD 50.00 398.87"
+  // The LAST number is always the HKD amount
+  const TX_PATTERN = /^(\d{1,2})([A-Z]{3})\s+(\d{1,2})([A-Z]{3})\s+(.+?)\s+([\d,]+\.\d{2})(CR)?$/;
 
   for (const pageText of pages) {
     const lines = pageText.split('\n');
@@ -86,14 +126,10 @@ export function parseHSBCStatement(pages: string[], statementYear?: number): Par
       if (SKIP_PATTERNS.some(p => p.test(line))) continue;
       if (CARD_LINE.test(line)) continue;
 
-      // Match transaction line: PostDate TransDate Description Amount
-      // Format: "14FEB  13FEB  HKeToll (Autotoll) Hong Kong HK  361.00"
-      const txMatch = line.match(
-        /^(\d{1,2})([A-Z]{3})\s+(\d{1,2})([A-Z]{3})\s+(.+?)\s{2,}([\d,]+\.\d{2})(CR)?$/
-      );
+      const txMatch = line.match(TX_PATTERN);
       
       if (txMatch) {
-        const [, postDay, postMonth, transDay, transMonth, desc, amountStr, cr] = txMatch;
+        const [, , , transDay, transMonth, rawDesc, amountStr, cr] = txMatch;
         
         const monthNum = MONTH_MAP[transMonth];
         if (!monthNum) continue;
@@ -106,11 +142,19 @@ export function parseHSBCStatement(pages: string[], statementYear?: number): Par
         // Skip credit transactions (payments, rebates)
         if (isCredit) continue;
 
+        // Clean description: remove foreign currency info at the end
+        // e.g. "FACEBK *SZRTSFHXE2 DUBLIN 2 IE USD 50.00" → "FACEBK *SZRTSFHXE2 DUBLIN 2 IE"
+        // e.g. "ALP*DIDI Taxi Shanghai CN CNY 50.70" → "ALP*DIDI Taxi Shanghai CN"
+        let desc = rawDesc.trim();
+        // Remove trailing foreign amount like "USD 50.00" or "CNY 141.91"
+        desc = desc.replace(/\s+[A-Z]{3}\s+[\d,]+\.\d{2}$/, '').trim();
+        // Also remove trailing amount if desc still ends with a number (edge case)
+        
         const { category, remarks } = classifyTransaction(desc);
 
         transactions.push({
           date: dateStr,
-          description: desc.trim(),
+          description: desc,
           amount,
           category,
           remarks,
@@ -148,13 +192,14 @@ export async function extractTextFromPDF(file: File): Promise<string[]> {
     }
 
     // Group items by Y position (same line)
-    const lineMap = new Map<number, { x: number; text: string }[]>();
+    const lineMap = new Map<number, { x: number; text: string; width: number }[]>();
     for (const item of items) {
       if (!item.str) continue;
       const y = Math.round(item.transform[5]); // Y position
       const x = item.transform[4]; // X position
+      const width = item.width || item.str.length * 4;
       if (!lineMap.has(y)) lineMap.set(y, []);
-      lineMap.get(y)!.push({ x, text: item.str });
+      lineMap.get(y)!.push({ x, text: item.str, width });
     }
 
     // Sort by Y descending (top to bottom), then X ascending
@@ -166,8 +211,8 @@ export async function extractTextFromPDF(file: File): Promise<string[]> {
         let line = '';
         for (let j = 0; j < items.length; j++) {
           if (j > 0) {
-            const gap = items[j].x - (items[j - 1].x + items[j - 1].text.length * 4);
-            line += gap > 20 ? '  ' : ' ';
+            const gap = items[j].x - (items[j - 1].x + items[j - 1].width);
+            line += gap > 10 ? '  ' : (gap > 2 ? ' ' : '');
           }
           line += items[j].text;
         }
