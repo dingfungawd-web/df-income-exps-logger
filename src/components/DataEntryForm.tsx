@@ -41,11 +41,6 @@ const DataEntryForm = ({ editingRecord, onComplete, onCancelEdit }: DataEntryFor
       return;
     }
 
-    if (caseId.length !== 7 || !/^\d{7}$/.test(caseId)) {
-      toast({ title: 'Case ID 格式錯誤', description: 'Case ID 必須輸入剛好 7 位數字（例如：DF1234567）', variant: 'destructive' });
-      return;
-    }
-
     const parsedAmount = parseFloat(amount);
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
       toast({ title: '請輸入有效金額', variant: 'destructive' });
@@ -123,12 +118,10 @@ const DataEntryForm = ({ editingRecord, onComplete, onCancelEdit }: DataEntryFor
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold">DF</span>
           <Input
             type="text"
-            inputMode="numeric"
-            maxLength={7}
             value={caseId}
-            onChange={(e) => setCaseId(e.target.value.replace(/\D/g, '').slice(0, 7))}
-            placeholder="0000000"
-            className="pl-10 h-11 text-base tracking-wider"
+            onChange={(e) => setCaseId(e.target.value)}
+            placeholder="輸入編號"
+            className="pl-10 h-11 text-base"
           />
         </div>
       </div>
