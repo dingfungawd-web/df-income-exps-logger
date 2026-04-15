@@ -10,13 +10,28 @@ export interface ParsedTransaction {
 }
 
 // Keyword → category mapping for auto-classification
-// Only these specific categories are auto-assigned; everything else → '其他' with description as remarks
+// Keyword → category mapping aligned with EXPENSE_CATEGORIES in types/record.ts
+// Categories: 轉介優惠回贈, 八達通增值, Call車, 月租停車場, 時租停車場, 入油, 貨物順豐運費, 度尺工具, 安裝工具, 文具費用, 貨倉飲品, 退款, 賠償, 貨款, 其他
 const CATEGORY_RULES: { pattern: RegExp; category: ExpenseCategory; remarks?: string }[] = [
+  // 入油
   { pattern: /GOGO ENERGY/i, category: '入油', remarks: '入油' },
   { pattern: /SHELL|ESSO|CALTEX|SINOPEC|中石化/i, category: '入油', remarks: '入油' },
+  // 時租停車場 (隧道費)
+  { pattern: /HKeToll|Autotoll/i, category: '時租停車場', remarks: '隧道費' },
+  // 月租停車場
+  { pattern: /PARKING|停車|月租/i, category: '月租停車場', remarks: '停車場' },
+  // Call車
+  { pattern: /DIDI Taxi|DiDi|ALP\*DIDI/i, category: 'Call車', remarks: 'DiDi' },
+  // 貨物順豐運費
+  { pattern: /順豐|S\.?F\.?\s*EXPRESS/i, category: '貨物順豐運費', remarks: '順豐運費' },
+  // 貨款
+  { pattern: /ALP\*Taobao|TAOBAO/i, category: '貨款', remarks: '淘寶' },
+  // 其他 (with specific remarks)
   { pattern: /Google\s*AD|Google\s*Workspace/i, category: '其他', remarks: 'Google廣告費' },
   { pattern: /HKBN/i, category: '其他', remarks: '寬頻月費' },
   { pattern: /FACEBK|FACEBOOK|META/i, category: '其他', remarks: 'Meta收費' },
+  { pattern: /LOVABLE/i, category: '其他', remarks: 'Lovable' },
+  { pattern: /TUBEBUDDY/i, category: '其他', remarks: 'TubeBuddy' },
 ];
 
 function classifyTransaction(description: string): { category: ExpenseCategory; remarks: string } {
