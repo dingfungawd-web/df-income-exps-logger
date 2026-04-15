@@ -136,7 +136,7 @@ const ExpenseEntryForm = ({ editingRecord, onComplete, onCancelEdit }: ExpenseEn
           <SelectContent>
             {(() => {
               if (isAdmin) {
-                const prioritized: ExpenseCategory[] = ['退款', '賠償', '貨款', '其他'];
+                const prioritized: ExpenseCategory[] = ['轉介優惠回贈', '退款', '賠償', '貨款', '其他'];
                 const rest = EXPENSE_CATEGORIES.filter(c => !prioritized.includes(c));
                 return [...prioritized, ...rest].map((c) => (<SelectItem key={c} value={c}>{c}</SelectItem>));
               }
