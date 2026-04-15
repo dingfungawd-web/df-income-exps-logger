@@ -28,10 +28,10 @@ const CATEGORY_RULES: { pattern: RegExp; category: ExpenseCategory; remarks?: st
 function classifyTransaction(description: string): { category: ExpenseCategory; remarks: string } {
   for (const rule of CATEGORY_RULES) {
     if (rule.pattern.test(description)) {
-      return { category: rule.category, remarks: rule.remarks || '' };
+      return { category: rule.category, remarks: rule.remarks || description.trim() };
     }
   }
-  return { category: '其他', remarks: description.split(/\s{2,}/)[0]?.trim() || description };
+  return { category: '其他', remarks: description.trim() };
 }
 
 /**
