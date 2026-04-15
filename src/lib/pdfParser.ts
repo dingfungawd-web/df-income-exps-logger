@@ -11,16 +11,18 @@ export interface ParsedTransaction {
 
 // Keyword → category mapping for auto-classification
 const CATEGORY_RULES: { pattern: RegExp; category: ExpenseCategory; remarks?: string }[] = [
-  { pattern: /HKeToll|Autotoll/i, category: '時租停車場', remarks: '隧道費/Autotoll' },
-  { pattern: /GOGO ENERGY/i, category: '入油' },
+  { pattern: /HKeToll|Autotoll/i, category: '隧道費', remarks: '隧道費' },
+  { pattern: /GOGO ENERGY/i, category: '入油', remarks: '入油' },
+  { pattern: /SHELL|ESSO|CALTEX|SINOPEC|中石化/i, category: '入油', remarks: '入油' },
   { pattern: /DIDI Taxi|DiDi/i, category: 'Call車' },
   { pattern: /TAOBAO/i, category: '貨款', remarks: '淘寶' },
-  { pattern: /Google ADS/i, category: '其他', remarks: 'Google廣告' },
+  { pattern: /Google\s*AD/i, category: '其他', remarks: 'Google廣告費' },
+  { pattern: /HKBN/i, category: '其他', remarks: '寬頻月費' },
+  { pattern: /FACEBK|FACEBOOK|META/i, category: '其他', remarks: 'Meta收費' },
   { pattern: /LOVABLE/i, category: '其他', remarks: 'Lovable' },
   { pattern: /TUBEBUDDY/i, category: '其他', remarks: 'TubeBuddy' },
   { pattern: /順豐|S\.?F\.?\s*EXPRESS/i, category: '貨物順豐運費' },
   { pattern: /PARKING|停車/i, category: '月租停車場' },
-  { pattern: /SHELL|ESSO|CALTEX|SINOPEC|中石化/i, category: '入油' },
 ];
 
 function classifyTransaction(description: string): { category: ExpenseCategory; remarks: string } {
