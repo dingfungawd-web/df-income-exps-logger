@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { DollarSign, FileText, LogOut, MinusCircle, Shield } from 'lucide-react';
+import { DollarSign, FileText, LogOut, MinusCircle, Shield, CreditCard } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import RecordsTable from '@/components/RecordsTable';
 import ExpenseEntryForm from '@/components/ExpenseEntryForm';
 import ExpenseRecordsTable from '@/components/ExpenseRecordsTable';
 import AdminClaimPanel from '@/components/AdminClaimPanel';
+import CreditCardUpload from '@/components/CreditCardUpload';
 import StaffLogin from '@/components/StaffLogin';
 import { useStaff } from '@/contexts/StaffContext';
 import { type RevenueRecord, type ExpenseRecord } from '@/types/record';
@@ -64,7 +65,7 @@ const Index = () => {
 
       <main className="max-w-lg mx-auto px-3 py-4">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-5' : 'grid-cols-4'} h-11 mb-4`}>
+          <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-6' : 'grid-cols-4'} h-11 mb-4`}>
             <TabsTrigger value="revenue-entry" className="text-xs font-medium gap-1">
               <DollarSign className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">{editingRevenue ? '修改' : '收入'}</span>
@@ -83,6 +84,13 @@ const Index = () => {
               <FileText className="h-3.5 w-3.5" />
               <span>支出紀錄</span>
             </TabsTrigger>
+            {isAdmin && (
+              <TabsTrigger value="credit-card" className="text-xs font-medium gap-1">
+                <CreditCard className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">月結單</span>
+                <span className="sm:hidden">卡</span>
+              </TabsTrigger>
+            )}
             {isAdmin && (
               <TabsTrigger value="admin" className="text-xs font-medium gap-1">
                 <Shield className="h-3.5 w-3.5" />
@@ -156,6 +164,13 @@ const Index = () => {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Credit Card Upload */}
+          {isAdmin && (
+            <TabsContent value="credit-card">
+              <CreditCardUpload />
+            </TabsContent>
+          )}
 
           {/* Admin Panel */}
           {isAdmin && (
