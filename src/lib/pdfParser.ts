@@ -10,23 +10,13 @@ export interface ParsedTransaction {
 }
 
 // Keyword → category mapping for auto-classification
+// Only these specific categories are auto-assigned; everything else → '其他' with description as remarks
 const CATEGORY_RULES: { pattern: RegExp; category: ExpenseCategory; remarks?: string }[] = [
-  { pattern: /HKeToll|Autotoll/i, category: '時租停車場', remarks: '隧道費' },
   { pattern: /GOGO ENERGY/i, category: '入油', remarks: '入油' },
   { pattern: /SHELL|ESSO|CALTEX|SINOPEC|中石化/i, category: '入油', remarks: '入油' },
-  { pattern: /DIDI Taxi|DiDi/i, category: 'Call車' },
-  { pattern: /ALP\*Taobao|TAOBAO/i, category: '貨款', remarks: '淘寶' },
-  { pattern: /Google\s*AD/i, category: '其他', remarks: 'Google廣告費' },
+  { pattern: /Google\s*AD|Google\s*Workspace/i, category: '其他', remarks: 'Google廣告費' },
   { pattern: /HKBN/i, category: '其他', remarks: '寬頻月費' },
   { pattern: /FACEBK|FACEBOOK|META/i, category: '其他', remarks: 'Meta收費' },
-  { pattern: /LOVABLE/i, category: '其他', remarks: 'Lovable' },
-  { pattern: /TUBEBUDDY/i, category: '其他', remarks: 'TubeBuddy' },
-  { pattern: /順豐|S\.?F\.?\s*EXPRESS/i, category: '貨物順豐運費' },
-  { pattern: /PARKING|停車/i, category: '月租停車場' },
-  { pattern: /MANUS AI/i, category: '其他', remarks: 'Manus AI' },
-  { pattern: /MAKE\.COM|WWW\.MAKE\.COM/i, category: '其他', remarks: 'Make.com' },
-  { pattern: /MOOVUP/i, category: '其他', remarks: 'Moovup招聘' },
-  { pattern: /KPay/i, category: '其他' },
 ];
 
 function classifyTransaction(description: string): { category: ExpenseCategory; remarks: string } {
