@@ -89,6 +89,10 @@ const CreditCardUpload = () => {
     if (editingIdx === idx) setEditingIdx(null);
   };
 
+  // Generate a fingerprint for duplicate detection
+  const txnFingerprint = (date: string, amount: number, desc: string) =>
+    `${date}|${amount.toFixed(2)}|${desc.replace(/\s+/g, ' ').trim().toLowerCase()}`;
+
   const handleApproveAndSubmit = async () => {
     const selectedTxns = transactions.filter((_, i) => selected.has(i));
     if (selectedTxns.length === 0) {
@@ -98,8 +102,22 @@ const CreditCardUpload = () => {
 
     setSubmitting(true);
     try {
+      // Fetch existing expenses for duplicate detection
+      const existing = await fetchExpenses();
+      const existingFingerprints = new Set(
+        existing
+          .filter(e => e.department === '老闆' && e.currency === 'HKD')
+          .map(e => txnFingerprint(e.date, Number(e.amount), e.remarks || ''))
+      );
+
       let successCount = 0;
+      let skipCount = 0;
       for (const txn of selectedTxns) {
+        const fp = txnFingerprint(txn.date, txn.amount, txn.remarks || txn.description);
+        if (existingFingerprints.has(fp)) {
+          skipCount++;
+          continue;
+        }
         await submitExpense({
           date: txn.date,
           department: '老闆',
@@ -109,11 +127,16 @@ const CreditCardUpload = () => {
           remarks: txn.remarks || txn.description,
           currency: 'HKD',
         });
+        // Add to set to prevent duplicates within same batch
+        existingFingerprints.add(fp);
         successCount++;
       }
       
       setSubmitted(true);
-      toast({ title: `成功提交 ${successCount} 筆支出記錄到 Google Sheet` });
+      const msg = skipCount > 0
+        ? `成功提交 ${successCount} 筆，跳過 ${skipCount} 筆重複記錄`
+        : `成功提交 ${successCount} 筆支出記錄到 Google Sheet`;
+      toast({ title: msg });
       
       setTimeout(() => {
         setTransactions([]);
