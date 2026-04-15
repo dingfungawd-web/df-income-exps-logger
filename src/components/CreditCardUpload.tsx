@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { extractTextFromPDF, parseHSBCStatement, type ParsedTransaction } from '@/lib/pdfParser';
-import { submitExpense } from '@/lib/googleSheets';
+import { submitExpense, fetchExpenses } from '@/lib/googleSheets';
 import { EXPENSE_CATEGORIES, type ExpenseCategory } from '@/types/record';
 import { cn } from '@/lib/utils';
 
