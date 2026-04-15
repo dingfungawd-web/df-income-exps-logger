@@ -16,8 +16,8 @@ const CATEGORY_RULES: { pattern: RegExp; category: ExpenseCategory; remarks?: st
   // 入油
   { pattern: /GOGO ENERGY/i, category: '入油', remarks: '入油' },
   { pattern: /SHELL|ESSO|CALTEX|SINOPEC|中石化/i, category: '入油', remarks: '入油' },
-  // 時租停車場 (隧道費)
-  { pattern: /HKeToll|Autotoll/i, category: '時租停車場', remarks: '隧道費' },
+  // 隧道費 (直接寫入 Google Sheet，不在網站類別列表中)
+  { pattern: /HKeToll|Autotoll/i, category: '隧道費' as ExpenseCategory, remarks: '隧道費' },
   // 月租停車場
   { pattern: /PARKING|停車|月租/i, category: '月租停車場', remarks: '停車場' },
   // Call車
