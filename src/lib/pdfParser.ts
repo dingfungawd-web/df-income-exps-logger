@@ -30,12 +30,11 @@ const CATEGORY_RULES: { pattern: RegExp; category: ExpenseCategory; remarks?: st
   { pattern: /Google\s*AD|Google\s*Workspace/i, category: '其他', remarks: 'Google廣告費' },
   { pattern: /HKBN/i, category: '其他', remarks: '寬頻月費' },
   { pattern: /FACEBK|FACEBOOK|META/i, category: '其他', remarks: 'Meta收費' },
-  { pattern: /LOVABLE/i, category: '其他', remarks: 'Lovable' },
   { pattern: /TUBEBUDDY/i, category: '其他', remarks: 'TubeBuddy' },
   // 利得稅 (直接寫入 Google Sheet，不在網站類別列表中)
   { pattern: /Inland Revenue|稅務局|利得稅/i, category: '利得稅' as ExpenseCategory, remarks: '利得稅' },
   // AI用量收費 (直接寫入 Google Sheet，不在網站類別列表中)
-  { pattern: /MAKE\.COM|MAKE COM|MANUS/i, category: 'AI用量收費' as ExpenseCategory, remarks: 'AI用量收費' },
+  { pattern: /MAKE\.COM|MAKE COM|MANUS|LOVABLE/i, category: 'AI用量收費' as ExpenseCategory, remarks: 'AI用量收費' },
   // 雲端服務 (直接寫入 Google Sheet，不在網站類別列表中)
   { pattern: /DROPBOX/i, category: '雲端服務' as ExpenseCategory, remarks: '雲端服務' },
   // 招聘平台收費 (直接寫入 Google Sheet，不在網站類別列表中)
