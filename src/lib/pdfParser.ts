@@ -39,6 +39,8 @@ const CATEGORY_RULES: { pattern: RegExp; category: ExpenseCategory; remarks?: st
   { pattern: /DROPBOX/i, category: '雲端服務' as ExpenseCategory, remarks: '雲端服務' },
   // 招聘平台收費 (直接寫入 Google Sheet，不在網站類別列表中)
   { pattern: /MOOVUP/i, category: '招聘平台收費' as ExpenseCategory, remarks: '招聘平台收費' },
+  // 保險 (直接寫入 Google Sheet，不在網站類別列表中)
+  { pattern: /ZURICH|AIA|PRUDENTIAL|MANULIFE|保險/i, category: '保險' as ExpenseCategory, remarks: '保險' },
 ];
 
 function classifyTransaction(description: string): { category: ExpenseCategory; remarks: string } {
