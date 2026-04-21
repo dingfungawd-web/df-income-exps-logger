@@ -32,8 +32,17 @@ const ExpenseEntryForm = ({ editingRecord, onComplete, onCancelEdit }: ExpenseEn
   const [amount, setAmount] = useState(editingRecord?.amount?.toString() || '');
   const [remarks, setRemarks] = useState(editingRecord?.remarks || '');
   const [currency, setCurrency] = useState<ExpenseCurrency>(editingRecord?.currency || 'HKD');
+  const [caseId, setCaseId] = useState(() => {
+    const r = editingRecord?.remarks || '';
+    const m = r.match(/^DF(\d+)/);
+    return m ? m[1] : '';
+  });
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+
+  const requiresCaseId =
+    department === '老闆' &&
+    (category === '轉介優惠回贈' || category === '退款' || category === '賠償');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,6 +56,11 @@ const ExpenseEntryForm = ({ editingRecord, onComplete, onCancelEdit }: ExpenseEn
       return;
     }
 
+    if (requiresCaseId && !caseId.trim()) {
+      toast({ title: '請輸入 Case ID', variant: 'destructive' });
+      return;
+    }
+
     const parsedAmount = parseFloat(amount);
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
       toast({ title: '請輸入有效金額', variant: 'destructive' });
@@ -55,13 +69,22 @@ const ExpenseEntryForm = ({ editingRecord, onComplete, onCancelEdit }: ExpenseEn
 
     setLoading(true);
     try {
+      let finalRemarks = '';
+      if (category === '其他' || category === '貨款') {
+        finalRemarks = remarks.trim();
+      }
+      if (requiresCaseId) {
+        const caseTag = `DF${caseId.trim()}`;
+        finalRemarks = finalRemarks ? `${caseTag} ${finalRemarks}` : caseTag;
+      }
+
       const record = {
         date: format(date, 'yyyy-MM-dd'),
         department: department as Department,
         staff: staffName,
         category: category as ExpenseCategory,
         amount: parsedAmount,
-        remarks: (category === '其他' || category === '貨款') ? remarks.trim() : '',
+        remarks: finalRemarks,
         currency,
       };
 
@@ -80,6 +103,7 @@ const ExpenseEntryForm = ({ editingRecord, onComplete, onCancelEdit }: ExpenseEn
           setAmount('');
           setCategory('');
           setRemarks('');
+          setCaseId('');
         }
         onComplete();
       }, 1200);
