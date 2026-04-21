@@ -177,6 +177,22 @@ const ExpenseEntryForm = ({ editingRecord, onComplete, onCancelEdit }: ExpenseEn
         </div>
       )}
 
+      {requiresCaseId && (
+        <div className="space-y-2">
+          <Label className="text-sm font-medium text-foreground">Case ID</Label>
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold">DF</span>
+            <Input
+              type="text"
+              value={caseId}
+              onChange={(e) => setCaseId(e.target.value)}
+              placeholder="輸入編號"
+              className="pl-10 h-11 text-base"
+            />
+          </div>
+        </div>
+      )}
+
       <div className="space-y-2">
         <Label className="text-sm font-medium text-foreground">金額 ({currency === 'RMB' ? 'RMB' : 'HKD'})</Label>
         <div className="relative">
