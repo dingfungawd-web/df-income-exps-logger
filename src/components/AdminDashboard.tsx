@@ -46,6 +46,8 @@ const AdminDashboard = () => {
   const [exchangeRate, setExchangeRate] = useState<number>(0.92); // default fallback CNY→HKD
   const [pieMode, setPieMode] = useState<'expense' | 'payment'>('expense');
   const [breakdownMode, setBreakdownMode] = useState<'department' | 'category'>('department');
+  const [breakdownDeptFilter, setBreakdownDeptFilter] = useState<string>('all');
+  const [breakdownCategoryFilter, setBreakdownCategoryFilter] = useState<string>('all');
 
   useEffect(() => {
     const load = async () => {
@@ -218,6 +220,10 @@ const AdminDashboard = () => {
     ];
     const filtered = all.filter(e => {
       try { return isWithinInterval(parseISO(e.date), { start, end }); } catch { return false; }
+    }).filter(e => {
+      if (breakdownDeptFilter !== 'all' && (e.department || '其他') !== breakdownDeptFilter) return false;
+      if (breakdownCategoryFilter !== 'all' && (e.category || '其他') !== breakdownCategoryFilter) return false;
+      return true;
     });
     const map: Record<string, number> = {};
     filtered.forEach(e => {
@@ -227,7 +233,12 @@ const AdminDashboard = () => {
     return Object.entries(map)
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
-  }, [hkdExpenses, rmbExpenses, exchangeRate, timeRange, periodCount, useCustomRange, customDateRange, breakdownMode]);
+  }, [hkdExpenses, rmbExpenses, exchangeRate, timeRange, periodCount, useCustomRange, customDateRange, breakdownMode, breakdownDeptFilter, breakdownCategoryFilter]);
+
+  const breakdownTotal = useMemo(
+    () => expenseBreakdown.reduce((s, x) => s + x.value, 0),
+    [expenseBreakdown]
+  );
 
   const formatCurrency = (v: number) => `$${v.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
@@ -525,6 +536,41 @@ const AdminDashboard = () => {
               ))}
             </div>
           </div>
+          <div className="flex flex-wrap items-center gap-2 mt-2">
+            <Select value={breakdownDeptFilter} onValueChange={setBreakdownDeptFilter}>
+              <SelectTrigger className="h-8 w-auto min-w-[120px] text-xs">
+                <SelectValue placeholder="部門" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">所有部門</SelectItem>
+                {ADMIN_DEPARTMENTS.map(d => (
+                  <SelectItem key={d} value={d}>{d}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={breakdownCategoryFilter} onValueChange={setBreakdownCategoryFilter}>
+              <SelectTrigger className="h-8 w-auto min-w-[120px] text-xs">
+                <SelectValue placeholder="類別" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">所有類別</SelectItem>
+                {EXPENSE_CATEGORIES.map(c => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {(breakdownDeptFilter !== 'all' || breakdownCategoryFilter !== 'all') && (
+              <button
+                onClick={() => { setBreakdownDeptFilter('all'); setBreakdownCategoryFilter('all'); }}
+                className="text-[11px] text-muted-foreground hover:text-foreground underline"
+              >
+                重設
+              </button>
+            )}
+            <span className="ml-auto text-xs font-semibold text-foreground tabular-nums">
+              總計：{formatCurrency(breakdownTotal)}
+            </span>
+          </div>
         </CardHeader>
         <CardContent className="px-2 pb-3">
           {expenseBreakdown.length === 0 ? (
@@ -541,7 +587,7 @@ const AdminDashboard = () => {
                   <XAxis type="number" tick={{ fontSize: 10 }} stroke="hsl(220, 10%, 50%)" tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} />
                   <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} stroke="hsl(220, 10%, 50%)" width={90} />
                   <Tooltip content={<PieTooltip />} />
-                  <Bar dataKey="value" radius={[0, 3, 3, 0]}>
+                  <Bar dataKey="value" radius={[0, 3, 3, 0]} label={{ position: 'right', fontSize: 10, fill: 'hsl(220, 10%, 30%)', formatter: (v: number) => formatCurrency(v) }}>
                     {expenseBreakdown.map((_, i) => (
                       <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                     ))}
