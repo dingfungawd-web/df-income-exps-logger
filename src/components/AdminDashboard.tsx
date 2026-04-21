@@ -433,17 +433,30 @@ const AdminDashboard = () => {
           <CardTitle className="text-sm">收支與淨額走勢</CardTitle>
           <CardDescription className="text-[11px]">按{timeRangeLabels[timeRange]}顯示收入、支出對比及淨額趨勢</CardDescription>
         </CardHeader>
-        <CardContent className="px-2 pb-3">
-          <div className="h-[260px] w-full">
+        <CardContent className="px-1 sm:px-2 pb-3">
+          <div className="h-[280px] sm:h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={chartData} margin={{ top: 5, right: 5, left: -15, bottom: 5 }}>
+              <ComposedChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 88%)" />
-                <XAxis dataKey="label" tick={{ fontSize: 10 }} stroke="hsl(220, 10%, 50%)" />
-                <YAxis tick={{ fontSize: 10 }} stroke="hsl(220, 10%, 50%)" tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} />
+                <XAxis
+                  dataKey="label"
+                  tick={{ fontSize: 10 }}
+                  stroke="hsl(220, 10%, 50%)"
+                  interval={0}
+                  angle={-30}
+                  textAnchor="end"
+                  height={50}
+                />
+                <YAxis
+                  tick={{ fontSize: 10 }}
+                  stroke="hsl(220, 10%, 50%)"
+                  width={45}
+                  tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}
+                />
                 <Tooltip content={<CustomTooltip />} />
-                <Legend wrapperStyle={{ fontSize: '11px' }} />
-                <Bar dataKey="收入" fill={CHART_COLORS.revenue} radius={[3, 3, 0, 0]} />
-                <Bar dataKey="支出" fill={CHART_COLORS.expense} radius={[3, 3, 0, 0]} />
+                <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '4px' }} />
+                <Bar dataKey="收入" fill={CHART_COLORS.revenue} radius={[3, 3, 0, 0]} maxBarSize={28} />
+                <Bar dataKey="支出" fill={CHART_COLORS.expense} radius={[3, 3, 0, 0]} maxBarSize={28} />
                 <Line type="monotone" dataKey="淨額" stroke={CHART_COLORS.net} strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
               </ComposedChart>
             </ResponsiveContainer>
@@ -485,10 +498,10 @@ const AdminDashboard = () => {
             const total = data.reduce((s, c) => s + c.value, 0);
             return (
               <>
-                <div className="h-[200px] w-full">
+                <div className="h-[220px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
-                      <Pie data={data} cx="50%" cy="50%" innerRadius={45} outerRadius={80} paddingAngle={2} dataKey="value">
+                      <Pie data={data} cx="50%" cy="50%" innerRadius={50} outerRadius={85} paddingAngle={2} dataKey="value">
                         {data.map((_, i) => (
                           <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                         ))}
@@ -497,12 +510,12 @@ const AdminDashboard = () => {
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
-                <div className="flex flex-wrap gap-x-3 gap-y-1 px-2 mt-1">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-2 gap-y-1.5 px-2 mt-2">
                   {data.slice(0, 8).map((c, i) => (
-                    <div key={c.name} className="flex items-center gap-1 text-[10px]">
-                      <div className="h-2 w-2 rounded-sm shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
-                      <span className="text-muted-foreground">{c.name}</span>
-                      <span className="font-medium text-foreground">{total > 0 ? ((c.value / total) * 100).toFixed(1) : 0}%</span>
+                    <div key={c.name} className="flex items-center gap-1.5 text-[11px] min-w-0">
+                      <div className="h-2.5 w-2.5 rounded-sm shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
+                      <span className="text-muted-foreground truncate flex-1">{c.name}</span>
+                      <span className="font-semibold text-foreground tabular-nums shrink-0">{total > 0 ? ((c.value / total) * 100).toFixed(1) : 0}%</span>
                     </div>
                   ))}
                 </div>
@@ -572,22 +585,35 @@ const AdminDashboard = () => {
             </span>
           </div>
         </CardHeader>
-        <CardContent className="px-2 pb-3">
+        <CardContent className="px-1 sm:px-2 pb-3">
           {expenseBreakdown.length === 0 ? (
             <p className="text-center text-xs text-muted-foreground py-8">暫無資料</p>
           ) : (
-            <div className="w-full" style={{ height: Math.max(200, expenseBreakdown.length * 32 + 40) }}>
+            <div className="w-full" style={{ height: Math.max(220, expenseBreakdown.length * 40 + 50) }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={expenseBreakdown}
                   layout="vertical"
-                  margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
+                  margin={{ top: 5, right: 70, left: 4, bottom: 5 }}
+                  barCategoryGap={6}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 88%)" />
-                  <XAxis type="number" tick={{ fontSize: 10 }} stroke="hsl(220, 10%, 50%)" tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} />
-                  <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} stroke="hsl(220, 10%, 50%)" width={90} />
-                  <Tooltip content={<PieTooltip />} />
-                  <Bar dataKey="value" radius={[0, 3, 3, 0]} label={{ position: 'right', fontSize: 10, fill: 'hsl(220, 10%, 30%)', formatter: (v: number) => formatCurrency(v) }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 88%)" horizontal={false} />
+                  <XAxis
+                    type="number"
+                    tick={{ fontSize: 10 }}
+                    stroke="hsl(220, 10%, 50%)"
+                    tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    tick={{ fontSize: 11 }}
+                    stroke="hsl(220, 10%, 50%)"
+                    width={110}
+                    interval={0}
+                  />
+                  <Tooltip content={<PieTooltip />} cursor={{ fill: 'hsl(220, 15%, 95%)' }} />
+                  <Bar dataKey="value" radius={[0, 4, 4, 0]} maxBarSize={28} label={{ position: 'right', fontSize: 11, fontWeight: 600, fill: 'hsl(220, 10%, 25%)', formatter: (v: number) => formatCurrency(v) }}>
                     {expenseBreakdown.map((_, i) => (
                       <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                     ))}
