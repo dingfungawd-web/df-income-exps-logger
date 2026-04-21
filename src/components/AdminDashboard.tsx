@@ -585,22 +585,35 @@ const AdminDashboard = () => {
             </span>
           </div>
         </CardHeader>
-        <CardContent className="px-2 pb-3">
+        <CardContent className="px-1 sm:px-2 pb-3">
           {expenseBreakdown.length === 0 ? (
             <p className="text-center text-xs text-muted-foreground py-8">暫無資料</p>
           ) : (
-            <div className="w-full" style={{ height: Math.max(200, expenseBreakdown.length * 32 + 40) }}>
+            <div className="w-full" style={{ height: Math.max(220, expenseBreakdown.length * 40 + 50) }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={expenseBreakdown}
                   layout="vertical"
-                  margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
+                  margin={{ top: 5, right: 70, left: 4, bottom: 5 }}
+                  barCategoryGap={6}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 88%)" />
-                  <XAxis type="number" tick={{ fontSize: 10 }} stroke="hsl(220, 10%, 50%)" tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} />
-                  <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} stroke="hsl(220, 10%, 50%)" width={90} />
-                  <Tooltip content={<PieTooltip />} />
-                  <Bar dataKey="value" radius={[0, 3, 3, 0]} label={{ position: 'right', fontSize: 10, fill: 'hsl(220, 10%, 30%)', formatter: (v: number) => formatCurrency(v) }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 88%)" horizontal={false} />
+                  <XAxis
+                    type="number"
+                    tick={{ fontSize: 10 }}
+                    stroke="hsl(220, 10%, 50%)"
+                    tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    tick={{ fontSize: 11 }}
+                    stroke="hsl(220, 10%, 50%)"
+                    width={110}
+                    interval={0}
+                  />
+                  <Tooltip content={<PieTooltip />} cursor={{ fill: 'hsl(220, 15%, 95%)' }} />
+                  <Bar dataKey="value" radius={[0, 4, 4, 0]} maxBarSize={28} label={{ position: 'right', fontSize: 11, fontWeight: 600, fill: 'hsl(220, 10%, 25%)', formatter: (v: number) => formatCurrency(v) }}>
                     {expenseBreakdown.map((_, i) => (
                       <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                     ))}
