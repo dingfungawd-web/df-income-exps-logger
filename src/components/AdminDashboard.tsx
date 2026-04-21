@@ -433,17 +433,30 @@ const AdminDashboard = () => {
           <CardTitle className="text-sm">收支與淨額走勢</CardTitle>
           <CardDescription className="text-[11px]">按{timeRangeLabels[timeRange]}顯示收入、支出對比及淨額趨勢</CardDescription>
         </CardHeader>
-        <CardContent className="px-2 pb-3">
-          <div className="h-[260px] w-full">
+        <CardContent className="px-1 sm:px-2 pb-3">
+          <div className="h-[280px] sm:h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={chartData} margin={{ top: 5, right: 5, left: -15, bottom: 5 }}>
+              <ComposedChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 88%)" />
-                <XAxis dataKey="label" tick={{ fontSize: 10 }} stroke="hsl(220, 10%, 50%)" />
-                <YAxis tick={{ fontSize: 10 }} stroke="hsl(220, 10%, 50%)" tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} />
+                <XAxis
+                  dataKey="label"
+                  tick={{ fontSize: 10 }}
+                  stroke="hsl(220, 10%, 50%)"
+                  interval={0}
+                  angle={-30}
+                  textAnchor="end"
+                  height={50}
+                />
+                <YAxis
+                  tick={{ fontSize: 10 }}
+                  stroke="hsl(220, 10%, 50%)"
+                  width={45}
+                  tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}
+                />
                 <Tooltip content={<CustomTooltip />} />
-                <Legend wrapperStyle={{ fontSize: '11px' }} />
-                <Bar dataKey="收入" fill={CHART_COLORS.revenue} radius={[3, 3, 0, 0]} />
-                <Bar dataKey="支出" fill={CHART_COLORS.expense} radius={[3, 3, 0, 0]} />
+                <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '4px' }} />
+                <Bar dataKey="收入" fill={CHART_COLORS.revenue} radius={[3, 3, 0, 0]} maxBarSize={28} />
+                <Bar dataKey="支出" fill={CHART_COLORS.expense} radius={[3, 3, 0, 0]} maxBarSize={28} />
                 <Line type="monotone" dataKey="淨額" stroke={CHART_COLORS.net} strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
               </ComposedChart>
             </ResponsiveContainer>
