@@ -375,8 +375,8 @@ const AdminDashboard = () => {
           </SelectContent>
         </Select>
 
-        {/* Date range picker for day mode */}
-        {timeRange === 'day' && useCustomRange && (
+        {/* Date range picker for all modes when custom is selected */}
+        {useCustomRange && (
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="outline" size="sm" className={cn(
@@ -386,7 +386,11 @@ const AdminDashboard = () => {
                 <CalendarIcon className="h-3.5 w-3.5" />
                 {customDateRange?.from ? (
                   customDateRange.to ? (
-                    `${format(customDateRange.from, 'MM/dd')} - ${format(customDateRange.to, 'MM/dd')}`
+                    timeRange === 'year'
+                      ? `${format(customDateRange.from, 'yyyy')} - ${format(customDateRange.to, 'yyyy')}`
+                      : timeRange === 'month'
+                        ? `${format(customDateRange.from, 'yyyy/MM')} - ${format(customDateRange.to, 'yyyy/MM')}`
+                        : `${format(customDateRange.from, 'yyyy/MM/dd')} - ${format(customDateRange.to, 'yyyy/MM/dd')}`
                   ) : format(customDateRange.from, 'MM/dd')
                 ) : '選擇日期範圍'}
               </Button>
