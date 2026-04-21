@@ -320,10 +320,12 @@ const AdminDashboard = () => {
       { value: '2', label: '最近2個月' },
       { value: '3', label: '最近3個月' },
       { value: '6', label: '最近6個月' },
+      { value: 'custom', label: '自訂日期' },
     ],
     year: [
       { value: '1', label: '最近1年' },
       { value: '999', label: '全選' },
+      { value: 'custom', label: '自訂日期' },
     ],
   };
 
