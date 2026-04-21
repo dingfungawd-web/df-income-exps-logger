@@ -498,10 +498,10 @@ const AdminDashboard = () => {
             const total = data.reduce((s, c) => s + c.value, 0);
             return (
               <>
-                <div className="h-[200px] w-full">
+                <div className="h-[220px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
-                      <Pie data={data} cx="50%" cy="50%" innerRadius={45} outerRadius={80} paddingAngle={2} dataKey="value">
+                      <Pie data={data} cx="50%" cy="50%" innerRadius={50} outerRadius={85} paddingAngle={2} dataKey="value">
                         {data.map((_, i) => (
                           <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                         ))}
@@ -510,12 +510,12 @@ const AdminDashboard = () => {
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
-                <div className="flex flex-wrap gap-x-3 gap-y-1 px-2 mt-1">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-2 gap-y-1.5 px-2 mt-2">
                   {data.slice(0, 8).map((c, i) => (
-                    <div key={c.name} className="flex items-center gap-1 text-[10px]">
-                      <div className="h-2 w-2 rounded-sm shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
-                      <span className="text-muted-foreground">{c.name}</span>
-                      <span className="font-medium text-foreground">{total > 0 ? ((c.value / total) * 100).toFixed(1) : 0}%</span>
+                    <div key={c.name} className="flex items-center gap-1.5 text-[11px] min-w-0">
+                      <div className="h-2.5 w-2.5 rounded-sm shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
+                      <span className="text-muted-foreground truncate flex-1">{c.name}</span>
+                      <span className="font-semibold text-foreground tabular-nums shrink-0">{total > 0 ? ((c.value / total) * 100).toFixed(1) : 0}%</span>
                     </div>
                   ))}
                 </div>
