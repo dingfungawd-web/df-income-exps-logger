@@ -79,18 +79,35 @@ const AdminDashboard = () => {
     const now = new Date();
     let buckets: { start: Date; end: Date; label: string }[] = [];
 
-    if (timeRange === 'day') {
-      if (useCustomRange && customDateRange?.from && customDateRange?.to) {
-        const days = eachDayOfInterval({ start: customDateRange.from, end: customDateRange.to });
+    if (useCustomRange && customDateRange?.from && customDateRange?.to) {
+      const from = customDateRange.from;
+      const to = customDateRange.to;
+      if (timeRange === 'day') {
+        const days = eachDayOfInterval({ start: from, end: to });
         days.forEach(d => {
           buckets.push({ start: startOfDay(d), end: endOfDay(d), label: format(d, 'MM/dd') });
         });
+      } else if (timeRange === 'month') {
+        let cursor = startOfMonth(from);
+        const last = startOfMonth(to);
+        while (cursor <= last) {
+          buckets.push({ start: startOfMonth(cursor), end: endOfMonth(cursor), label: format(cursor, 'yyyy/MM') });
+          cursor = startOfMonth(subMonths(cursor, -1));
+        }
       } else {
+        let yr = from.getFullYear();
+        const lastYr = to.getFullYear();
+        while (yr <= lastYr) {
+          const d = new Date(yr, 0, 1);
+          buckets.push({ start: startOfYear(d), end: endOfYear(d), label: format(d, 'yyyy') });
+          yr++;
+        }
+      }
+    } else if (timeRange === 'day') {
         for (let i = periodCount - 1; i >= 0; i--) {
           const d = subDays(now, i);
           buckets.push({ start: startOfDay(d), end: endOfDay(d), label: format(d, 'MM/dd') });
         }
-      }
     } else if (timeRange === 'month') {
       for (let i = periodCount - 1; i >= 0; i--) {
         const d = subMonths(now, i);
