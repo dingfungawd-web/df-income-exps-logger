@@ -2,14 +2,14 @@ import { useState, useEffect, useMemo } from 'react';
 import { format, parseISO, startOfDay, startOfMonth, startOfYear, endOfDay, endOfMonth, endOfYear, eachDayOfInterval, isWithinInterval, subDays, subMonths, subYears, differenceInCalendarDays, min as minDate } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
 import { Loader2, TrendingUp, TrendingDown, Wallet, CalendarIcon } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, LineChart, Line, PieChart, Pie, Cell, ComposedChart } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { type RevenueRecord, type ExpenseRecord, CURRENCY_SYMBOLS } from '@/types/record';
+import { type RevenueRecord, type ExpenseRecord, CURRENCY_SYMBOLS, ADMIN_DEPARTMENTS, EXPENSE_CATEGORIES } from '@/types/record';
 import { fetchRecords, fetchExpenses } from '@/lib/googleSheets';
 import { useToast } from '@/hooks/use-toast';
 import type { DateRange } from 'react-day-picker';
@@ -44,6 +44,8 @@ const AdminDashboard = () => {
   const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>();
   const [useCustomRange, setUseCustomRange] = useState(false);
   const [exchangeRate, setExchangeRate] = useState<number>(0.92); // default fallback CNY→HKD
+  const [pieMode, setPieMode] = useState<'expense' | 'payment'>('expense');
+  const [breakdownMode, setBreakdownMode] = useState<'department' | 'category'>('department');
 
   useEffect(() => {
     const load = async () => {
@@ -206,6 +208,26 @@ const AdminDashboard = () => {
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
   }, [revenues, timeRange, periodCount, useCustomRange, customDateRange]);
+
+  // Breakdown by Department or Category (expenses, HKD-equivalent)
+  const expenseBreakdown = useMemo(() => {
+    const { start, end } = getDateRange();
+    const all = [
+      ...hkdExpenses.map(e => ({ ...e, hkdAmount: Number(e.amount) })),
+      ...rmbExpenses.map(e => ({ ...e, hkdAmount: Math.round(Number(e.amount) * exchangeRate) })),
+    ];
+    const filtered = all.filter(e => {
+      try { return isWithinInterval(parseISO(e.date), { start, end }); } catch { return false; }
+    });
+    const map: Record<string, number> = {};
+    filtered.forEach(e => {
+      const key = breakdownMode === 'department' ? (e.department || '其他') : (e.category || '其他');
+      map[key] = (map[key] || 0) + e.hkdAmount;
+    });
+    return Object.entries(map)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+  }, [hkdExpenses, rmbExpenses, exchangeRate, timeRange, periodCount, useCustomRange, customDateRange, breakdownMode]);
 
   const formatCurrency = (v: number) => `$${v.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
@@ -394,16 +416,16 @@ const AdminDashboard = () => {
         </Card>
       </div>
 
-      {/* Bar Chart - Revenue vs Expense */}
+      {/* Combined: Revenue vs Expense (bars) + Net (line) */}
       <Card>
         <CardHeader className="pb-2 px-4">
-          <CardTitle className="text-sm">收入 vs 支出</CardTitle>
-          <CardDescription className="text-[11px]">按{timeRangeLabels[timeRange]}顯示收入與支出對比</CardDescription>
+          <CardTitle className="text-sm">收支與淨額走勢</CardTitle>
+          <CardDescription className="text-[11px]">按{timeRangeLabels[timeRange]}顯示收入、支出對比及淨額趨勢</CardDescription>
         </CardHeader>
         <CardContent className="px-2 pb-3">
-          <div className="h-[220px] w-full">
+          <div className="h-[260px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} margin={{ top: 5, right: 5, left: -15, bottom: 5 }}>
+              <ComposedChart data={chartData} margin={{ top: 5, right: 5, left: -15, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 88%)" />
                 <XAxis dataKey="label" tick={{ fontSize: 10 }} stroke="hsl(220, 10%, 50%)" />
                 <YAxis tick={{ fontSize: 10 }} stroke="hsl(220, 10%, 50%)" tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} />
@@ -411,131 +433,125 @@ const AdminDashboard = () => {
                 <Legend wrapperStyle={{ fontSize: '11px' }} />
                 <Bar dataKey="收入" fill={CHART_COLORS.revenue} radius={[3, 3, 0, 0]} />
                 <Bar dataKey="支出" fill={CHART_COLORS.expense} radius={[3, 3, 0, 0]} />
-              </BarChart>
+                <Line type="monotone" dataKey="淨額" stroke={CHART_COLORS.net} strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+              </ComposedChart>
             </ResponsiveContainer>
           </div>
         </CardContent>
       </Card>
 
-      {/* Line Chart - Net */}
+      {/* Combined Pie: Expense / Payment toggle */}
       <Card>
         <CardHeader className="pb-2 px-4">
-          <CardTitle className="text-sm">淨額趨勢</CardTitle>
-          <CardDescription className="text-[11px]">收入減去支出的淨額走勢</CardDescription>
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div>
+              <CardTitle className="text-sm">{pieMode === 'expense' ? '支出分佈' : '收款方式分佈'}</CardTitle>
+              <CardDescription className="text-[11px]">
+                {pieMode === 'expense' ? '按支出類別分佈' : '按收款方式分佈'}
+              </CardDescription>
+            </div>
+            <div className="flex rounded-lg border bg-card overflow-hidden">
+              {([['expense', '支出'], ['payment', '收款']] as const).map(([k, lbl]) => (
+                <button
+                  key={k}
+                  onClick={() => setPieMode(k)}
+                  className={`px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                    pieMode === k ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'
+                  }`}
+                >
+                  {lbl}
+                </button>
+              ))}
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="px-2 pb-3">
-          <div className="h-[180px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData} margin={{ top: 5, right: 5, left: -15, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 88%)" />
-                <XAxis dataKey="label" tick={{ fontSize: 10 }} stroke="hsl(220, 10%, 50%)" />
-                <YAxis tick={{ fontSize: 10 }} stroke="hsl(220, 10%, 50%)" tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} />
-                <Tooltip content={<CustomTooltip />} />
-                <Line type="monotone" dataKey="淨額" stroke={CHART_COLORS.net} strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+          {(() => {
+            const data = pieMode === 'expense' ? expenseByCat : revenueByPayment;
+            if (data.length === 0) {
+              return <p className="text-center text-xs text-muted-foreground py-8">暫無資料</p>;
+            }
+            const total = data.reduce((s, c) => s + c.value, 0);
+            return (
+              <>
+                <div className="h-[200px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={data} cx="50%" cy="50%" innerRadius={45} outerRadius={80} paddingAngle={2} dataKey="value">
+                        {data.map((_, i) => (
+                          <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip content={<PieTooltip />} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="flex flex-wrap gap-x-3 gap-y-1 px-2 mt-1">
+                  {data.slice(0, 8).map((c, i) => (
+                    <div key={c.name} className="flex items-center gap-1 text-[10px]">
+                      <div className="h-2 w-2 rounded-sm shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
+                      <span className="text-muted-foreground">{c.name}</span>
+                      <span className="font-medium text-foreground">{total > 0 ? ((c.value / total) * 100).toFixed(1) : 0}%</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            );
+          })()}
         </CardContent>
       </Card>
 
-      {/* Pie Charts */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {/* Expense by Category */}
-        <Card>
-          <CardHeader className="pb-2 px-4">
-            <CardTitle className="text-sm">支出分佈</CardTitle>
-            <CardDescription className="text-[11px]">按類別分佈</CardDescription>
-          </CardHeader>
-          <CardContent className="px-2 pb-3">
-            {expenseByCat.length === 0 ? (
-              <p className="text-center text-xs text-muted-foreground py-8">暫無資料</p>
-            ) : (
-              <>
-                <div className="h-[180px] w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={expenseByCat}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={40}
-                        outerRadius={70}
-                        paddingAngle={2}
-                        dataKey="value"
-                      >
-                        {expenseByCat.map((_, i) => (
-                          <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip content={<PieTooltip />} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="flex flex-wrap gap-x-3 gap-y-1 px-2 mt-1">
-                  {(() => {
-                    const total = expenseByCat.reduce((s, c) => s + c.value, 0);
-                    return expenseByCat.slice(0, 6).map((c, i) => (
-                      <div key={c.name} className="flex items-center gap-1 text-[10px]">
-                        <div className="h-2 w-2 rounded-sm shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
-                        <span className="text-muted-foreground">{c.name}</span>
-                        <span className="font-medium text-foreground">{total > 0 ? ((c.value / total) * 100).toFixed(1) : 0}%</span>
-                      </div>
-                    ));
-                  })()}
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Revenue by Payment */}
-        <Card>
-          <CardHeader className="pb-2 px-4">
-            <CardTitle className="text-sm">收款方式分佈</CardTitle>
-            <CardDescription className="text-[11px]">按收款方式分佈</CardDescription>
-          </CardHeader>
-          <CardContent className="px-2 pb-3">
-            {revenueByPayment.length === 0 ? (
-              <p className="text-center text-xs text-muted-foreground py-8">暫無資料</p>
-            ) : (
-              <>
-                <div className="h-[180px] w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={revenueByPayment}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={40}
-                        outerRadius={70}
-                        paddingAngle={2}
-                        dataKey="value"
-                      >
-                        {revenueByPayment.map((_, i) => (
-                          <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip content={<PieTooltip />} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="flex flex-wrap gap-x-3 gap-y-1 px-2 mt-1">
-                  {(() => {
-                    const total = revenueByPayment.reduce((s, c) => s + c.value, 0);
-                    return revenueByPayment.map((c, i) => (
-                      <div key={c.name} className="flex items-center gap-1 text-[10px]">
-                        <div className="h-2 w-2 rounded-sm shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
-                        <span className="text-muted-foreground">{c.name}</span>
-                        <span className="font-medium text-foreground">{total > 0 ? ((c.value / total) * 100).toFixed(1) : 0}%</span>
-                      </div>
-                    ));
-                  })()}
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+      {/* Expense Breakdown by Department / Category */}
+      <Card>
+        <CardHeader className="pb-2 px-4">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div>
+              <CardTitle className="text-sm">支出明細</CardTitle>
+              <CardDescription className="text-[11px]">
+                按{breakdownMode === 'department' ? '部門' : '支出類別'}顯示金額（已折算 HKD）
+              </CardDescription>
+            </div>
+            <div className="flex rounded-lg border bg-card overflow-hidden">
+              {([['department', '部門'], ['category', '類別']] as const).map(([k, lbl]) => (
+                <button
+                  key={k}
+                  onClick={() => setBreakdownMode(k)}
+                  className={`px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                    breakdownMode === k ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'
+                  }`}
+                >
+                  {lbl}
+                </button>
+              ))}
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="px-2 pb-3">
+          {expenseBreakdown.length === 0 ? (
+            <p className="text-center text-xs text-muted-foreground py-8">暫無資料</p>
+          ) : (
+            <div className="w-full" style={{ height: Math.max(200, expenseBreakdown.length * 32 + 40) }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={expenseBreakdown}
+                  layout="vertical"
+                  margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 88%)" />
+                  <XAxis type="number" tick={{ fontSize: 10 }} stroke="hsl(220, 10%, 50%)" tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} />
+                  <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} stroke="hsl(220, 10%, 50%)" width={90} />
+                  <Tooltip content={<PieTooltip />} />
+                  <Bar dataKey="value" radius={[0, 3, 3, 0]}>
+                    {expenseBreakdown.map((_, i) => (
+                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };
