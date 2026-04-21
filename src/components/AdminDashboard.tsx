@@ -79,18 +79,35 @@ const AdminDashboard = () => {
     const now = new Date();
     let buckets: { start: Date; end: Date; label: string }[] = [];
 
-    if (timeRange === 'day') {
-      if (useCustomRange && customDateRange?.from && customDateRange?.to) {
-        const days = eachDayOfInterval({ start: customDateRange.from, end: customDateRange.to });
+    if (useCustomRange && customDateRange?.from && customDateRange?.to) {
+      const from = customDateRange.from;
+      const to = customDateRange.to;
+      if (timeRange === 'day') {
+        const days = eachDayOfInterval({ start: from, end: to });
         days.forEach(d => {
           buckets.push({ start: startOfDay(d), end: endOfDay(d), label: format(d, 'MM/dd') });
         });
+      } else if (timeRange === 'month') {
+        let cursor = startOfMonth(from);
+        const last = startOfMonth(to);
+        while (cursor <= last) {
+          buckets.push({ start: startOfMonth(cursor), end: endOfMonth(cursor), label: format(cursor, 'yyyy/MM') });
+          cursor = startOfMonth(subMonths(cursor, -1));
+        }
       } else {
+        let yr = from.getFullYear();
+        const lastYr = to.getFullYear();
+        while (yr <= lastYr) {
+          const d = new Date(yr, 0, 1);
+          buckets.push({ start: startOfYear(d), end: endOfYear(d), label: format(d, 'yyyy') });
+          yr++;
+        }
+      }
+    } else if (timeRange === 'day') {
         for (let i = periodCount - 1; i >= 0; i--) {
           const d = subDays(now, i);
           buckets.push({ start: startOfDay(d), end: endOfDay(d), label: format(d, 'MM/dd') });
         }
-      }
     } else if (timeRange === 'month') {
       for (let i = periodCount - 1; i >= 0; i--) {
         const d = subMonths(now, i);
@@ -152,10 +169,16 @@ const AdminDashboard = () => {
   // Helper to get date range for pie charts
   const getDateRange = () => {
     const now = new Date();
-    if (timeRange === 'day') {
-      if (useCustomRange && customDateRange?.from && customDateRange?.to) {
+    if (useCustomRange && customDateRange?.from && customDateRange?.to) {
+      if (timeRange === 'day') {
         return { start: startOfDay(customDateRange.from), end: endOfDay(customDateRange.to) };
+      } else if (timeRange === 'month') {
+        return { start: startOfMonth(customDateRange.from), end: endOfMonth(customDateRange.to) };
+      } else {
+        return { start: startOfYear(customDateRange.from), end: endOfYear(customDateRange.to) };
       }
+    }
+    if (timeRange === 'day') {
       return { start: startOfDay(subDays(now, periodCount - 1)), end: endOfDay(now) };
     } else if (timeRange === 'month') {
       return { start: startOfMonth(subMonths(now, periodCount - 1)), end: endOfMonth(now) };
@@ -297,10 +320,12 @@ const AdminDashboard = () => {
       { value: '2', label: '最近2個月' },
       { value: '3', label: '最近3個月' },
       { value: '6', label: '最近6個月' },
+      { value: 'custom', label: '自訂日期' },
     ],
     year: [
       { value: '1', label: '最近1年' },
       { value: '999', label: '全選' },
+      { value: 'custom', label: '自訂日期' },
     ],
   };
 
@@ -350,8 +375,8 @@ const AdminDashboard = () => {
           </SelectContent>
         </Select>
 
-        {/* Date range picker for day mode */}
-        {timeRange === 'day' && useCustomRange && (
+        {/* Date range picker for all modes when custom is selected */}
+        {useCustomRange && (
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="outline" size="sm" className={cn(
@@ -361,7 +386,11 @@ const AdminDashboard = () => {
                 <CalendarIcon className="h-3.5 w-3.5" />
                 {customDateRange?.from ? (
                   customDateRange.to ? (
-                    `${format(customDateRange.from, 'MM/dd')} - ${format(customDateRange.to, 'MM/dd')}`
+                    timeRange === 'year'
+                      ? `${format(customDateRange.from, 'yyyy')} - ${format(customDateRange.to, 'yyyy')}`
+                      : timeRange === 'month'
+                        ? `${format(customDateRange.from, 'yyyy/MM')} - ${format(customDateRange.to, 'yyyy/MM')}`
+                        : `${format(customDateRange.from, 'yyyy/MM/dd')} - ${format(customDateRange.to, 'yyyy/MM/dd')}`
                   ) : format(customDateRange.from, 'MM/dd')
                 ) : '選擇日期範圍'}
               </Button>
