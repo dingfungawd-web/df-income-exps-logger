@@ -169,10 +169,16 @@ const AdminDashboard = () => {
   // Helper to get date range for pie charts
   const getDateRange = () => {
     const now = new Date();
-    if (timeRange === 'day') {
-      if (useCustomRange && customDateRange?.from && customDateRange?.to) {
+    if (useCustomRange && customDateRange?.from && customDateRange?.to) {
+      if (timeRange === 'day') {
         return { start: startOfDay(customDateRange.from), end: endOfDay(customDateRange.to) };
+      } else if (timeRange === 'month') {
+        return { start: startOfMonth(customDateRange.from), end: endOfMonth(customDateRange.to) };
+      } else {
+        return { start: startOfYear(customDateRange.from), end: endOfYear(customDateRange.to) };
       }
+    }
+    if (timeRange === 'day') {
       return { start: startOfDay(subDays(now, periodCount - 1)), end: endOfDay(now) };
     } else if (timeRange === 'month') {
       return { start: startOfMonth(subMonths(now, periodCount - 1)), end: endOfMonth(now) };
