@@ -209,6 +209,26 @@ const AdminDashboard = () => {
       .sort((a, b) => b.value - a.value);
   }, [revenues, timeRange, periodCount, useCustomRange, customDateRange]);
 
+  // Breakdown by Department or Category (expenses, HKD-equivalent)
+  const expenseBreakdown = useMemo(() => {
+    const { start, end } = getDateRange();
+    const all = [
+      ...hkdExpenses.map(e => ({ ...e, hkdAmount: Number(e.amount) })),
+      ...rmbExpenses.map(e => ({ ...e, hkdAmount: Math.round(Number(e.amount) * exchangeRate) })),
+    ];
+    const filtered = all.filter(e => {
+      try { return isWithinInterval(parseISO(e.date), { start, end }); } catch { return false; }
+    });
+    const map: Record<string, number> = {};
+    filtered.forEach(e => {
+      const key = breakdownMode === 'department' ? (e.department || '其他') : (e.category || '其他');
+      map[key] = (map[key] || 0) + e.hkdAmount;
+    });
+    return Object.entries(map)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+  }, [hkdExpenses, rmbExpenses, exchangeRate, timeRange, periodCount, useCustomRange, customDateRange, breakdownMode]);
+
   const formatCurrency = (v: number) => `$${v.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
   const CustomTooltip = ({ active, payload, label }: any) => {
