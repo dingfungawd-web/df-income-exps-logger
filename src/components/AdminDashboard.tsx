@@ -44,6 +44,8 @@ const AdminDashboard = () => {
   const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>();
   const [useCustomRange, setUseCustomRange] = useState(false);
   const [exchangeRate, setExchangeRate] = useState<number>(0.92); // default fallback CNY→HKD
+  const [pieMode, setPieMode] = useState<'expense' | 'payment'>('expense');
+  const [breakdownMode, setBreakdownMode] = useState<'department' | 'category'>('department');
 
   useEffect(() => {
     const load = async () => {
