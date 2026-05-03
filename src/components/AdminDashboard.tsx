@@ -408,11 +408,23 @@ const AdminDashboard = () => {
             </PopoverContent>
           </Popover>
         )}
+
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 text-xs gap-1.5 ml-auto"
+          onClick={() => loadData(true)}
+          disabled={loading}
+        >
+          <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
+          重新整理
+        </Button>
       </div>
 
       {/* Exchange Rate Badge */}
-      <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+      <div className="flex items-center gap-3 text-[10px] text-muted-foreground flex-wrap">
         <span>💱 匯率: ¥1 = ${exchangeRate.toFixed(4)} HKD</span>
+        {lastSync && <span>🔄 上次同步: {format(lastSync, 'yyyy/MM/dd HH:mm:ss')}</span>}
       </div>
 
       {/* Summary Cards */}
