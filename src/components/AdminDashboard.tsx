@@ -342,8 +342,8 @@ const AdminDashboard = () => {
   return (
     <div className="space-y-4">
       {/* Filters */}
-      <div className="flex gap-2 flex-wrap items-center">
-        <div className="flex rounded-lg border bg-card overflow-hidden">
+      <div className="flex gap-2 flex-wrap items-center w-full">
+        <div className="flex rounded-lg border bg-card overflow-hidden shrink-0">
           {(['day', 'month', 'year'] as TimeRange[]).map((t) => (
             <button
               key={t}
@@ -352,7 +352,7 @@ const AdminDashboard = () => {
                 setUseCustomRange(false);
                 setPeriodCount(Number(periodOptions[t][0].value));
               }}
-              className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+              className={`px-2.5 py-1.5 text-xs font-medium transition-colors whitespace-nowrap ${
                 timeRange === t
                   ? 'bg-primary text-primary-foreground'
                   : 'text-muted-foreground hover:bg-muted'
@@ -366,7 +366,7 @@ const AdminDashboard = () => {
           value={useCustomRange ? 'custom' : String(periodCount)}
           onValueChange={handlePeriodChange}
         >
-          <SelectTrigger className="h-8 w-[130px] text-xs">
+          <SelectTrigger className="h-8 w-[120px] text-xs shrink-0">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -381,7 +381,7 @@ const AdminDashboard = () => {
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="outline" size="sm" className={cn(
-                "h-8 text-xs gap-1.5",
+                "h-8 text-xs gap-1.5 whitespace-nowrap shrink-0",
                 !customDateRange?.from && "text-muted-foreground"
               )}>
                 <CalendarIcon className="h-3.5 w-3.5" />
@@ -412,7 +412,7 @@ const AdminDashboard = () => {
         <Button
           variant="outline"
           size="sm"
-          className="h-8 text-xs gap-1.5 ml-auto"
+          className="h-8 text-xs gap-1.5 sm:ml-auto whitespace-nowrap shrink-0"
           onClick={() => loadData(true)}
           disabled={loading}
         >
