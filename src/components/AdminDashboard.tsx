@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { format, parseISO, startOfDay, startOfMonth, startOfYear, endOfDay, endOfMonth, endOfYear, eachDayOfInterval, isWithinInterval, subDays, subMonths, subYears, differenceInCalendarDays, min as minDate } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
-import { Loader2, TrendingUp, TrendingDown, Wallet, CalendarIcon } from 'lucide-react';
+import { Loader2, TrendingUp, TrendingDown, Wallet, CalendarIcon, RefreshCw } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, LineChart, Line, PieChart, Pie, Cell, ComposedChart } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -49,30 +49,31 @@ const AdminDashboard = () => {
   const [breakdownDeptFilter, setBreakdownDeptFilter] = useState<string>('all');
   const [breakdownCategoryFilter, setBreakdownCategoryFilter] = useState<string>('all');
 
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      try {
-        const [revData, expData, rate] = await Promise.all([
-          fetchRecords(),
-          fetchExpenses(),
-          fetch('https://open.er-api.com/v6/latest/CNY')
-            .then(r => r.json())
-            .then(d => d?.rates?.HKD ?? 0.92)
-            .catch(() => 0.92),
-        ]);
-        setRevenues(revData);
-        setHkdExpenses(expData.filter(e => (e.currency || 'HKD') === 'HKD'));
-        setRmbExpenses(expData.filter(e => e.currency === 'RMB'));
-        setExchangeRate(rate);
-      } catch {
-        toast({ title: '載入圖表資料失敗', variant: 'destructive' });
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, []);
+  const [lastSync, setLastSync] = useState<Date | null>(null);
+  const loadData = async (showToast = false) => {
+    setLoading(true);
+    try {
+      const [revData, expData, rate] = await Promise.all([
+        fetchRecords(),
+        fetchExpenses(),
+        fetch('https://open.er-api.com/v6/latest/CNY')
+          .then(r => r.json())
+          .then(d => d?.rates?.HKD ?? 0.92)
+          .catch(() => 0.92),
+      ]);
+      setRevenues(revData);
+      setHkdExpenses(expData.filter(e => (e.currency || 'HKD') === 'HKD'));
+      setRmbExpenses(expData.filter(e => e.currency === 'RMB'));
+      setExchangeRate(rate);
+      setLastSync(new Date());
+      if (showToast) toast({ title: '已同步最新數據' });
+    } catch {
+      toast({ title: '載入圖表資料失敗', variant: 'destructive' });
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => { loadData(); }, []);
 
   // Generate time buckets
   const chartData = useMemo(() => {
@@ -407,11 +408,23 @@ const AdminDashboard = () => {
             </PopoverContent>
           </Popover>
         )}
+
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 text-xs gap-1.5 ml-auto"
+          onClick={() => loadData(true)}
+          disabled={loading}
+        >
+          <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
+          重新整理
+        </Button>
       </div>
 
       {/* Exchange Rate Badge */}
-      <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+      <div className="flex items-center gap-3 text-[10px] text-muted-foreground flex-wrap">
         <span>💱 匯率: ¥1 = ${exchangeRate.toFixed(4)} HKD</span>
+        {lastSync && <span>🔄 上次同步: {format(lastSync, 'yyyy/MM/dd HH:mm:ss')}</span>}
       </div>
 
       {/* Summary Cards */}
