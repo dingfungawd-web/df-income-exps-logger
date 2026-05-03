@@ -65,35 +65,32 @@ const Index = () => {
 
       <main className="max-w-lg mx-auto px-3 py-4">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-6' : 'grid-cols-4'} h-11 mb-4`}>
-            <TabsTrigger value="revenue-entry" className="text-xs font-medium gap-1">
-              <DollarSign className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">{editingRevenue ? '修改' : '收入'}</span>
-              <span className="sm:hidden">收入</span>
+          <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-6' : 'grid-cols-4'} h-11 mb-4 gap-0.5`}>
+            <TabsTrigger value="revenue-entry" className="text-[11px] font-medium gap-0.5 px-1 flex-col sm:flex-row sm:gap-1 sm:text-xs">
+              <DollarSign className="h-3.5 w-3.5 shrink-0" />
+              <span>{editingRevenue ? '修改' : '收入'}</span>
             </TabsTrigger>
-            <TabsTrigger value="revenue-records" className="text-xs font-medium gap-1">
-              <FileText className="h-3.5 w-3.5" />
+            <TabsTrigger value="revenue-records" className="text-[11px] font-medium gap-0.5 px-1 flex-col sm:flex-row sm:gap-1 sm:text-xs">
+              <FileText className="h-3.5 w-3.5 shrink-0" />
               <span>收入紀錄</span>
             </TabsTrigger>
-            <TabsTrigger value="expense-entry" className="text-xs font-medium gap-1">
-              <MinusCircle className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">{editingExpense ? '修改' : '支出'}</span>
-              <span className="sm:hidden">支出</span>
+            <TabsTrigger value="expense-entry" className="text-[11px] font-medium gap-0.5 px-1 flex-col sm:flex-row sm:gap-1 sm:text-xs">
+              <MinusCircle className="h-3.5 w-3.5 shrink-0" />
+              <span>{editingExpense ? '修改' : '支出'}</span>
             </TabsTrigger>
-            <TabsTrigger value="expense-records" className="text-xs font-medium gap-1">
-              <FileText className="h-3.5 w-3.5" />
+            <TabsTrigger value="expense-records" className="text-[11px] font-medium gap-0.5 px-1 flex-col sm:flex-row sm:gap-1 sm:text-xs">
+              <FileText className="h-3.5 w-3.5 shrink-0" />
               <span>支出紀錄</span>
             </TabsTrigger>
             {isAdmin && (
-              <TabsTrigger value="credit-card" className="text-xs font-medium gap-1">
-                <CreditCard className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">月結單</span>
-                <span className="sm:hidden">卡</span>
+              <TabsTrigger value="credit-card" className="text-[11px] font-medium gap-0.5 px-1 flex-col sm:flex-row sm:gap-1 sm:text-xs">
+                <CreditCard className="h-3.5 w-3.5 shrink-0" />
+                <span>月結單</span>
               </TabsTrigger>
             )}
             {isAdmin && (
-              <TabsTrigger value="admin" className="text-xs font-medium gap-1">
-                <Shield className="h-3.5 w-3.5" />
+              <TabsTrigger value="admin" className="text-[11px] font-medium gap-0.5 px-1 flex-col sm:flex-row sm:gap-1 sm:text-xs">
+                <Shield className="h-3.5 w-3.5 shrink-0" />
                 <span>管理</span>
               </TabsTrigger>
             )}
