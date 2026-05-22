@@ -34,6 +34,8 @@ const RecordsTable = ({ onEdit, refreshKey }: RecordsTableProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDept, setFilterDept] = useState<string>('all');
   const [filterPayment, setFilterPayment] = useState<string>('all');
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
 
   const loadRecords = async () => {
     setLoading(true);
@@ -69,6 +71,21 @@ const RecordsTable = ({ onEdit, refreshKey }: RecordsTableProps) => {
 
     if (filterDept !== 'all' && r.department !== filterDept) return false;
     if (filterPayment !== 'all' && r.paymentMethod !== filterPayment) return false;
+    if (isAdmin && (startDate || endDate)) {
+      try {
+        const d = parseISO(r.date);
+        if (startDate) {
+          const s = parseISO(startDate);
+          s.setHours(0, 0, 0, 0);
+          if (d < s) return false;
+        }
+        if (endDate) {
+          const e = parseISO(endDate);
+          e.setHours(23, 59, 59, 999);
+          if (d > e) return false;
+        }
+      } catch { return false; }
+    }
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       return (
@@ -88,15 +105,38 @@ const RecordsTable = ({ onEdit, refreshKey }: RecordsTableProps) => {
     <div className="space-y-4">
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="搜尋記錄..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9 h-10"
-          />
-        </div>
+        {isAdmin ? (
+          <div className="flex flex-1 gap-2 items-center">
+            <Input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="h-10 flex-1"
+              aria-label="開始日期"
+            />
+            <span className="text-muted-foreground text-sm">至</span>
+            <Input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="h-10 flex-1"
+              aria-label="結束日期"
+            />
+            {(startDate || endDate) && (
+              <Button variant="ghost" size="sm" onClick={() => { setStartDate(''); setEndDate(''); }} className="h-10 shrink-0">清除</Button>
+            )}
+          </div>
+        ) : (
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="搜尋記錄..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9 h-10"
+            />
+          </div>
+        )}
         <Select value={filterDept} onValueChange={setFilterDept}>
           <SelectTrigger className="w-full sm:w-36 h-10">
             <Filter className="mr-2 h-3.5 w-3.5" />
