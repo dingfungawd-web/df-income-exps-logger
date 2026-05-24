@@ -80,9 +80,43 @@ const ExpenseRecordsTable = ({ onEdit, refreshKey }: ExpenseRecordsTableProps) =
     return true;
   });
 
+  const sorted = [...filtered].sort((a, b) => {
+    try {
+      return parseISO(b.date).getTime() - parseISO(a.date).getTime();
+    } catch {
+      return 0;
+    }
+  });
+
+  const fmt = (d: Date) => format(d, 'yyyy-MM-dd');
+  const applyPreset = (preset: 'week' | 'month' | 'lastMonth') => {
+    const now = new Date();
+    if (preset === 'week') {
+      const day = now.getDay();
+      const diffToMon = (day + 6) % 7;
+      const start = new Date(now); start.setDate(now.getDate() - diffToMon);
+      setStartDate(fmt(start)); setEndDate(fmt(now));
+    } else if (preset === 'month') {
+      const start = new Date(now.getFullYear(), now.getMonth(), 1);
+      setStartDate(fmt(start)); setEndDate(fmt(now));
+    } else {
+      const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const end = new Date(now.getFullYear(), now.getMonth(), 0);
+      setStartDate(fmt(start)); setEndDate(fmt(end));
+    }
+  };
+
 
   return (
     <div className="space-y-4">
+      {isAdmin && (
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={() => applyPreset('week')} className="h-8">本週</Button>
+          <Button variant="outline" size="sm" onClick={() => applyPreset('month')} className="h-8">本月</Button>
+          <Button variant="outline" size="sm" onClick={() => applyPreset('lastMonth')} className="h-8">上月</Button>
+          <Button variant="outline" size="sm" onClick={() => { setStartDate(''); setEndDate(''); }} className="h-8">全部</Button>
+        </div>
+      )}
       <div className="flex flex-col sm:flex-row gap-3">
         {isAdmin ? (
           <div className="flex flex-1 gap-2 items-center">
@@ -142,7 +176,7 @@ const ExpenseRecordsTable = ({ onEdit, refreshKey }: ExpenseRecordsTableProps) =
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           <span className="ml-2 text-muted-foreground">載入中...</span>
         </div>
-      ) : filtered.length === 0 ? (
+      ) : sorted.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
           <p className="text-lg font-medium">暫無支出記錄</p>
           <p className="text-sm mt-1">新增支出後將會在此顯示</p>
@@ -163,7 +197,7 @@ const ExpenseRecordsTable = ({ onEdit, refreshKey }: ExpenseRecordsTableProps) =
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((record) => (
+              {sorted.map((record) => (
                 <TableRow key={record.id} className="group hover:bg-muted/30 transition-colors">
                   <TableCell className="font-medium">
                     {(() => { try { return format(parseISO(record.date), 'yyyy/MM/dd'); } catch { return record.date; } })()}
