@@ -24,6 +24,10 @@ const CATEGORY_RULES: { pattern: RegExp; category: ExpenseCategory; remarks?: st
   { pattern: /DIDI Taxi|DiDi|ALP\*DIDI/i, category: 'Call車', remarks: 'DiDi' },
   // 貨物順豐運費
   { pattern: /順豐|S\.?F\.?\s*EXPRESS/i, category: '貨物順豐運費', remarks: '順豐運費' },
+  // 電話費
+  { pattern: /TELECOM\s*DIGITAL/i, category: '電話費', remarks: '電話費' },
+  // 高鐵票
+  { pattern: /12306/i, category: '高鐵票', remarks: '高鐵票' },
   // 貨款
   { pattern: /ALP\*Taobao|TAOBAO/i, category: '貨款', remarks: '淘寶' },
   // 其他 (with specific remarks)
