@@ -40,7 +40,7 @@ const AdminDashboard = () => {
   const [rmbExpenses, setRmbExpenses] = useState<ExpenseRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<TimeRange>('month');
-  const [periodCount, setPeriodCount] = useState(6);
+  const [periodCount, setPeriodCount] = useState(1);
   const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>();
   const [useCustomRange, setUseCustomRange] = useState(false);
   const [exchangeRate, setExchangeRate] = useState<number>(0.92); // default fallback CNY→HKD
