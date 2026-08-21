@@ -15,7 +15,9 @@ const CreditCardUpload = () => {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [parsing, setParsing] = useState(false);
+  const [parseProgress, setParseProgress] = useState({ done: 0, total: 0 });
   const [submitting, setSubmitting] = useState(false);
+  const [submitProgress, setSubmitProgress] = useState({ done: 0, total: 0 });
   const [submitted, setSubmitted] = useState(false);
   const [transactions, setTransactions] = useState<ParsedTransaction[]>([]);
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -32,12 +34,15 @@ const CreditCardUpload = () => {
 
     setFileName(file.name);
     setParsing(true);
+    setParseProgress({ done: 0, total: 0 });
     setTransactions([]);
     setSelected(new Set());
     setSubmitted(false);
 
     try {
-      const pages = await extractTextFromPDF(file);
+      const pages = await extractTextFromPDF(file, (done, total) =>
+        setParseProgress({ done, total })
+      );
       const parsed = parseHSBCStatement(pages);
       
       if (parsed.length === 0) {
