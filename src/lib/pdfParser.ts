@@ -260,7 +260,12 @@ export async function extractTextFromPDF(
       });
 
     pages.push(sortedLines.join('\n'));
+    page.cleanup();
+    onProgress?.(i, pdf.numPages);
+    // Yield to the UI thread so the tab never appears frozen / gets killed
+    await new Promise((r) => setTimeout(r, 0));
   }
 
+  await pdf.destroy();
   return pages;
 }
