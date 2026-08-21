@@ -347,7 +347,9 @@ const CreditCardUpload = () => {
               className="w-full h-11 text-base font-semibold"
             >
               {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {submitting ? '提交中...' : `確認提交 ${selected.size} 筆記錄`}
+              {submitting
+                ? `提交中... ${submitProgress.done}/${submitProgress.total}`
+                : `確認提交 ${selected.size} 筆記錄`}
             </Button>
           </div>
         )}
