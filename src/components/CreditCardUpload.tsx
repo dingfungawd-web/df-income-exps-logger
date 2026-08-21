@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { extractTextFromPDF, parseHSBCStatement, type ParsedTransaction } from '@/lib/pdfParser';
-import { submitExpense, fetchExpenses } from '@/lib/googleSheets';
+import { submitExpense } from '@/lib/googleSheets';
 import { EXPENSE_CATEGORIES, type ExpenseCategory } from '@/types/record';
 import { cn } from '@/lib/utils';
 
@@ -94,10 +94,6 @@ const CreditCardUpload = () => {
     if (editingIdx === idx) setEditingIdx(null);
   };
 
-  // Generate a fingerprint for duplicate detection
-  const txnFingerprint = (date: string, amount: number, desc: string) =>
-    `${date}|${amount.toFixed(2)}|${desc.replace(/\s+/g, ' ').trim().toLowerCase()}`;
-
   const handleApproveAndSubmit = async () => {
     const selectedTxns = transactions.filter((_, i) => selected.has(i));
     if (selectedTxns.length === 0) {
@@ -108,38 +104,11 @@ const CreditCardUpload = () => {
     setSubmitting(true);
     setSubmitProgress({ done: 0, total: selectedTxns.length });
     try {
-      // Fetch existing expenses for duplicate detection.
-      // A read failure must NOT abort the whole submission — skip dedup instead.
-      let existingFingerprints = new Set<string>();
-      try {
-        const existing = await fetchExpenses();
-        existingFingerprints = new Set(
-          existing
-            .filter(e => e.department === '老闆' && e.currency === 'HKD')
-            .map(e => txnFingerprint(e.date, Number(e.amount), e.remarks || ''))
-        );
-      } catch {
-        toast({ title: '未能讀取現有支出資料，將略過重複檢查繼續提交' });
-      }
-
+      // No duplicate filtering: a statement can legitimately contain identical
+      // transactions (same date / amount / merchant) — every row must be recorded.
       let successCount = 0;
-      let skipCount = 0;
       let done = 0;
       const failed: ParsedTransaction[] = [];
-
-      // Filter out duplicates first
-      const seen = new Set<string>();
-      const toSubmit: ParsedTransaction[] = [];
-      for (const txn of selectedTxns) {
-        const fp = txnFingerprint(txn.date, txn.amount, txn.remarks || txn.description);
-        if (existingFingerprints.has(fp) || seen.has(fp)) {
-          skipCount++;
-          setSubmitProgress({ done: ++done, total: selectedTxns.length });
-          continue;
-        }
-        seen.add(fp);
-        toSubmit.push(txn);
-      }
 
       const sendOne = async (txn: ParsedTransaction) => {
         for (let attempt = 0; attempt < 3; attempt++) {
@@ -168,9 +137,9 @@ const CreditCardUpload = () => {
       const CONCURRENCY = 4;
       let cursor = 0;
       await Promise.all(
-        Array.from({ length: Math.min(CONCURRENCY, toSubmit.length) }, async () => {
-          while (cursor < toSubmit.length) {
-            const txn = toSubmit[cursor++];
+        Array.from({ length: Math.min(CONCURRENCY, selectedTxns.length) }, async () => {
+          while (cursor < selectedTxns.length) {
+            const txn = selectedTxns[cursor++];
             await sendOne(txn);
           }
         })
@@ -178,9 +147,7 @@ const CreditCardUpload = () => {
 
       const failCount = failed.length;
 
-
       const parts = [`成功提交 ${successCount} 筆`];
-      if (skipCount > 0) parts.push(`跳過 ${skipCount} 筆重複`);
       if (failCount > 0) parts.push(`失敗 ${failCount} 筆`);
       toast({ title: parts.join('，'), variant: failCount > 0 ? 'destructive' : 'default' });
 
