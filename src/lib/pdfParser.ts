@@ -185,17 +185,39 @@ export function parseHSBCStatement(pages: string[], statementYear?: number): Par
   return transactions;
 }
 
+// Cache the pdfjs module so repeated uploads don't re-download/re-init it
+let pdfjsPromise: Promise<typeof import('pdfjs-dist')> | null = null;
+async function getPdfjs() {
+  if (!pdfjsPromise) {
+    pdfjsPromise = (async () => {
+      const lib = await import('pdfjs-dist');
+      // Use the locally bundled worker (no CDN → no network stalls / blocked requests)
+      const workerUrl = (await import('pdfjs-dist/build/pdf.worker.min.mjs?url')).default;
+      lib.GlobalWorkerOptions.workerSrc = workerUrl;
+      return lib;
+    })();
+  }
+  return pdfjsPromise;
+}
+
 /**
  * Extract text from PDF using pdfjs-dist
  */
-export async function extractTextFromPDF(file: File): Promise<string[]> {
-  const pdfjsLib = await import('pdfjs-dist');
-  
-  // Set worker source
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+export async function extractTextFromPDF(
+  file: File,
+  onProgress?: (done: number, total: number) => void,
+): Promise<string[]> {
+  const pdfjsLib = await getPdfjs();
 
   const arrayBuffer = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const pdf = await pdfjsLib.getDocument({
+    data: arrayBuffer,
+    disableAutoFetch: true,
+    disableStream: true,
+    isEvalSupported: false,
+  }).promise;
+
+
   
   const pages: string[] = [];
   for (let i = 1; i <= pdf.numPages; i++) {
