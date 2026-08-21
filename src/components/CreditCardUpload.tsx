@@ -106,6 +106,7 @@ const CreditCardUpload = () => {
     }
 
     setSubmitting(true);
+    setSubmitProgress({ done: 0, total: selectedTxns.length });
     try {
       // Fetch existing expenses for duplicate detection
       const existing = await fetchExpenses();
@@ -117,39 +118,66 @@ const CreditCardUpload = () => {
 
       let successCount = 0;
       let skipCount = 0;
+      let failCount = 0;
+      let done = 0;
+      const failed: ParsedTransaction[] = [];
+
       for (const txn of selectedTxns) {
         const fp = txnFingerprint(txn.date, txn.amount, txn.remarks || txn.description);
         if (existingFingerprints.has(fp)) {
           skipCount++;
+          setSubmitProgress({ done: ++done, total: selectedTxns.length });
           continue;
         }
-        await submitExpense({
-          date: txn.date,
-          department: '老闆',
-          staff: 'admin',
-          category: txn.category,
-          amount: txn.amount,
-          remarks: txn.remarks || txn.description,
-          currency: 'HKD',
-        });
-        // Add to set to prevent duplicates within same batch
-        existingFingerprints.add(fp);
-        successCount++;
+
+        // Retry each row up to 3 times — network hiccups shouldn't abort the batch
+        let ok = false;
+        for (let attempt = 0; attempt < 3 && !ok; attempt++) {
+          try {
+            await submitExpense({
+              date: txn.date,
+              department: '老闆',
+              staff: 'admin',
+              category: txn.category,
+              amount: txn.amount,
+              remarks: txn.remarks || txn.description,
+              currency: 'HKD',
+            });
+            ok = true;
+          } catch {
+            await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+          }
+        }
+
+        if (ok) {
+          existingFingerprints.add(fp);
+          successCount++;
+        } else {
+          failCount++;
+          failed.push(txn);
+        }
+        setSubmitProgress({ done: ++done, total: selectedTxns.length });
       }
-      
-      setSubmitted(true);
-      const msg = skipCount > 0
-        ? `成功提交 ${successCount} 筆，跳過 ${skipCount} 筆重複記錄`
-        : `成功提交 ${successCount} 筆支出記錄到 Google Sheet`;
-      toast({ title: msg });
-      
-      setTimeout(() => {
-        setTransactions([]);
-        setSelected(new Set());
-        setSubmitted(false);
-        setFileName('');
-        if (fileInputRef.current) fileInputRef.current.value = '';
-      }, 2000);
+
+      const parts = [`成功提交 ${successCount} 筆`];
+      if (skipCount > 0) parts.push(`跳過 ${skipCount} 筆重複`);
+      if (failCount > 0) parts.push(`失敗 ${failCount} 筆`);
+      toast({ title: parts.join('，'), variant: failCount > 0 ? 'destructive' : 'default' });
+
+      if (failCount > 0) {
+        // Keep only the failed rows so the user can retry them
+        setTransactions(failed);
+        setSelected(new Set(failed.map((_, i) => i)));
+      } else {
+        setSubmitted(true);
+        setTimeout(() => {
+          setTransactions([]);
+          setSelected(new Set());
+          setSubmitted(false);
+          setFileName('');
+          if (fileInputRef.current) fileInputRef.current.value = '';
+        }, 2000);
+      }
     } catch (err) {
       toast({ title: '提交失敗: ' + (err instanceof Error ? err.message : '未知錯誤'), variant: 'destructive' });
     } finally {
