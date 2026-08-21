@@ -220,7 +220,11 @@ const CreditCardUpload = () => {
           {parsing ? (
             <div className="flex flex-col items-center gap-2">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="text-sm text-muted-foreground">正在解析 PDF...</p>
+              <p className="text-sm text-muted-foreground">
+                {parseProgress.total > 0
+                  ? `正在解析 PDF... (第 ${parseProgress.done}/${parseProgress.total} 頁)`
+                  : '正在解析 PDF...'}
+              </p>
             </div>
           ) : (
             <div className="flex flex-col items-center gap-2">
