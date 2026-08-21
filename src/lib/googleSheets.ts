@@ -126,17 +126,22 @@ export async function confirmHandover(revenueIds: string[], staff: string, total
 // ─── Expenses ───
 export async function fetchExpenses(): Promise<ExpenseRecord[]> {
   const [hkdRes, rmbRes] = await Promise.all([
-    fetch(buildScriptActionUrl('getExpenses'), { redirect: 'follow' }),
-    fetch(buildScriptActionUrl('getExpensesRMB'), { redirect: 'follow' }),
+    getWithRetry(buildScriptActionUrl('getExpenses')).catch((e) => {
+      throw new Error('無法讀取支出資料: ' + (e instanceof Error ? e.message : ''));
+    }),
+    getWithRetry(buildScriptActionUrl('getExpensesRMB')).catch(() => null),
   ]);
-  if (!hkdRes.ok) throw new Error('無法讀取支出資料');
   const hkdData = await hkdRes.json();
   const hkdRecords: ExpenseRecord[] = (hkdData.records || []).map((r: any) => ({ ...r, currency: 'HKD' as const }));
 
   let rmbRecords: ExpenseRecord[] = [];
-  if (rmbRes.ok) {
-    const rmbData = await rmbRes.json();
-    rmbRecords = (rmbData.records || []).map((r: any) => ({ ...r, currency: 'RMB' as const }));
+  if (rmbRes) {
+    try {
+      const rmbData = await rmbRes.json();
+      rmbRecords = (rmbData.records || []).map((r: any) => ({ ...r, currency: 'RMB' as const }));
+    } catch {
+      rmbRecords = [];
+    }
   }
 
   return [...hkdRecords, ...rmbRecords];
