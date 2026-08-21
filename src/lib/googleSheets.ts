@@ -47,6 +47,29 @@ export function setScriptUrl(url: string): void {
   localStorage.setItem(SCRIPT_URL_KEY, normalizeScriptUrl(url));
 }
 
+// GET with timeout + retry — Apps Script often returns transient 429/500
+// or simply stalls, which used to surface as "無法讀取支出資料".
+async function getWithRetry(url: string, attempts = 3, timeoutMs = 30000): Promise<Response> {
+  let lastErr: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const res = await fetch(url, { redirect: 'follow', signal: controller.signal });
+        if (res.ok) return res;
+        lastErr = new Error(`HTTP ${res.status}`);
+      } finally {
+        clearTimeout(timer);
+      }
+    } catch (e) {
+      lastErr = e;
+    }
+    if (i < attempts - 1) await new Promise((r) => setTimeout(r, 800 * (i + 1)));
+  }
+  throw lastErr instanceof Error ? lastErr : new Error('請求失敗');
+}
+
 // Helper for POST requests – Google Apps Script redirects can cause
 // `res.ok` to be false even when the write succeeds (CORS on redirect).
 // We try to parse the JSON body; if that succeeds with `success:true` we
@@ -103,17 +126,22 @@ export async function confirmHandover(revenueIds: string[], staff: string, total
 // ─── Expenses ───
 export async function fetchExpenses(): Promise<ExpenseRecord[]> {
   const [hkdRes, rmbRes] = await Promise.all([
-    fetch(buildScriptActionUrl('getExpenses'), { redirect: 'follow' }),
-    fetch(buildScriptActionUrl('getExpensesRMB'), { redirect: 'follow' }),
+    getWithRetry(buildScriptActionUrl('getExpenses')).catch((e) => {
+      throw new Error('無法讀取支出資料: ' + (e instanceof Error ? e.message : ''));
+    }),
+    getWithRetry(buildScriptActionUrl('getExpensesRMB')).catch(() => null),
   ]);
-  if (!hkdRes.ok) throw new Error('無法讀取支出資料');
   const hkdData = await hkdRes.json();
   const hkdRecords: ExpenseRecord[] = (hkdData.records || []).map((r: any) => ({ ...r, currency: 'HKD' as const }));
 
   let rmbRecords: ExpenseRecord[] = [];
-  if (rmbRes.ok) {
-    const rmbData = await rmbRes.json();
-    rmbRecords = (rmbData.records || []).map((r: any) => ({ ...r, currency: 'RMB' as const }));
+  if (rmbRes) {
+    try {
+      const rmbData = await rmbRes.json();
+      rmbRecords = (rmbData.records || []).map((r: any) => ({ ...r, currency: 'RMB' as const }));
+    } catch {
+      rmbRecords = [];
+    }
   }
 
   return [...hkdRecords, ...rmbRecords];
