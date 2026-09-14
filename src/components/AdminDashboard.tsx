@@ -54,8 +54,8 @@ const AdminDashboard = () => {
     setLoading(true);
     try {
       const [revData, expData, rate] = await Promise.all([
-        fetchRecords(),
-        fetchExpenses(),
+        fetchRecords(showToast),
+        fetchExpenses(showToast),
         fetch('https://open.er-api.com/v6/latest/CNY')
           .then(r => r.json())
           .then(d => d?.rates?.HKD ?? 0.92)
