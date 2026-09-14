@@ -49,7 +49,7 @@ export function setScriptUrl(url: string): void {
 
 // GET with timeout + retry — Apps Script often returns transient 429/500
 // or simply stalls, which used to surface as "無法讀取支出資料".
-async function getWithRetry(url: string, attempts = 3, timeoutMs = 30000): Promise<Response> {
+async function getWithRetry(url: string, attempts = 2, timeoutMs = 8000): Promise<Response> {
   let lastErr: unknown;
   for (let i = 0; i < attempts; i++) {
     try {
@@ -116,11 +116,24 @@ async function getJson(action: string, opts: { force?: boolean; optional?: boole
 // treat it as OK.  If the response is opaque we optimistically assume success.
 async function postToScript(payload: Record<string, unknown>): Promise<any> {
   const url = getScriptUrl();
-  const res = await fetch(url, {
-    method: 'POST',
-    body: JSON.stringify(payload),
-    redirect: 'follow',
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15000);
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      redirect: 'follow',
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new Error('連線逾時，請再試一次');
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
 
   // Any write makes cached reads stale
   invalidateCache();

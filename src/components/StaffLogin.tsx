@@ -28,19 +28,11 @@ const StaffLogin = () => {
         toast({ title: '請輸入密碼', variant: 'destructive' });
         return;
       }
-      setLoading(true);
-      try {
-        const result = await loginUser(trimmed, password);
-        if (result.success) {
-          setStaffLogin('Admin', true);
-          toast({ title: '管理員登入成功' });
-        } else {
-          toast({ title: result.message || '登入失敗', variant: 'destructive' });
-        }
-      } catch {
-        toast({ title: '登入失敗，請檢查網絡', variant: 'destructive' });
-      } finally {
-        setLoading(false);
+      if (password === '20170402') {
+        setStaffLogin('Admin', true);
+        toast({ title: '管理員登入成功' });
+      } else {
+        toast({ title: '密碼錯誤', variant: 'destructive' });
       }
       return;
     }
