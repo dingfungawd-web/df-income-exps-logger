@@ -49,7 +49,7 @@ export function setScriptUrl(url: string): void {
 
 // GET with timeout + retry — Apps Script often returns transient 429/500
 // or simply stalls, which used to surface as "無法讀取支出資料".
-async function getWithRetry(url: string, attempts = 2, timeoutMs = 8000): Promise<Response> {
+async function getWithRetry(url: string, attempts = 1, timeoutMs = 6000): Promise<Response> {
   let lastErr: unknown;
   for (let i = 0; i < attempts; i++) {
     try {
@@ -178,17 +178,19 @@ export async function confirmHandover(revenueIds: string[], staff: string, total
 
 // ─── Expenses ───
 export async function fetchExpenses(force = false): Promise<ExpenseRecord[]> {
-  const [hkdData, rmbData] = await Promise.all([
-    getJson('getExpenses', { force }).catch((e) => {
-      throw new Error('無法讀取支出資料: ' + (e instanceof Error ? e.message : ''));
-    }),
-    getJson('getExpensesRMB', { force, optional: true }),
+  const [hkdRecords, rmbRecords] = await Promise.all([
+    fetchExpensesByCurrency('HKD', force),
+    fetchExpensesByCurrency('RMB', force),
   ]);
-
-  const hkdRecords: ExpenseRecord[] = (hkdData?.records || []).map((r: any) => ({ ...r, currency: 'HKD' as const }));
-  const rmbRecords: ExpenseRecord[] = (rmbData?.records || []).map((r: any) => ({ ...r, currency: 'RMB' as const }));
-
   return [...hkdRecords, ...rmbRecords];
+}
+
+export async function fetchExpensesByCurrency(currency: 'HKD' | 'RMB', force = false): Promise<ExpenseRecord[]> {
+  const action = currency === 'RMB' ? 'getExpensesRMB' : 'getExpenses';
+  const data = await getJson(action, { force, optional: currency === 'RMB' }).catch((error) => {
+    throw new Error('無法讀取支出資料: ' + (error instanceof Error ? error.message : ''));
+  });
+  return (data?.records || []).map((record: any) => ({ ...record, currency }));
 }
 
 export async function submitExpense(record: Omit<ExpenseRecord, 'id' | 'claimed' | 'claimDate' | 'claimAmount'>): Promise<void> {
