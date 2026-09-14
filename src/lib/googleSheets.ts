@@ -39,11 +39,12 @@ export function getScriptUrl(): string {
 
 export function setScriptUrl(url: string): void {
   localStorage.setItem(SCRIPT_URL_KEY, normalizeScriptUrl(url));
+  invalidateCache();
 }
 
 // GET with timeout + retry — Apps Script often returns transient 429/500
 // or simply stalls, which used to surface as "無法讀取支出資料".
-async function getWithRetry(url: string, attempts = 1, timeoutMs = 30000): Promise<Response> {
+async function getWithRetry(url: string, attempts = 2, timeoutMs = 8000): Promise<Response> {
   let lastErr: unknown;
   for (let i = 0; i < attempts; i++) {
     try {
@@ -53,6 +54,7 @@ async function getWithRetry(url: string, attempts = 1, timeoutMs = 30000): Promi
         const res = await fetch(url, { redirect: 'follow', signal: controller.signal });
         if (res.ok) return res;
         lastErr = new Error(`HTTP ${res.status}`);
+        if (res.status < 500 && res.status !== 429) break;
       } finally {
         clearTimeout(timer);
       }
@@ -71,9 +73,42 @@ async function getWithRetry(url: string, attempts = 1, timeoutMs = 30000): Promi
 const CACHE_TTL = 60_000;
 const cache = new Map<string, { at: number; data: any }>();
 const inflight = new Map<string, Promise<any>>();
+const writeInflight = new Map<string, Promise<any>>();
 
 export function invalidateCache(): void {
   cache.clear();
+}
+
+function invalidateActions(actions: string[]): void {
+  actions.forEach((action) => cache.delete(action));
+}
+
+const INVALIDATIONS: Record<string, string[]> = {
+  add: ['getAll'],
+  update: ['getAll'],
+  deleteRecord: ['getAll'],
+  confirmHandover: ['getAll', 'getHandoverHistory'],
+  deleteHandoverRecord: ['getAll', 'getHandoverHistory'],
+  updateHandoverRecord: ['getHandoverHistory'],
+  addExpense: ['getExpenses'],
+  updateExpense: ['getExpenses'],
+  deleteExpense: ['getExpenses'],
+  claimExpenses: ['getExpenses', 'getClaimHistory'],
+  deleteClaimRecord: ['getExpenses', 'getClaimHistory'],
+  updateClaimRecord: ['getClaimHistory'],
+  addExpenseRMB: ['getExpensesRMB'],
+  updateExpenseRMB: ['getExpensesRMB'],
+  deleteExpenseRMB: ['getExpensesRMB'],
+  claimExpensesRMB: ['getExpensesRMB', 'getClaimHistoryRMB'],
+  deleteClaimRecordRMB: ['getExpensesRMB', 'getClaimHistoryRMB'],
+  updateClaimRecordRMB: ['getClaimHistoryRMB'],
+  register: ['getAllUsers'],
+  deleteUser: ['getAllUsers'],
+  clearAllRecords: ['getAll', 'getExpenses', 'getExpensesRMB', 'getClaimHistory', 'getClaimHistoryRMB', 'getHandoverHistory'],
+};
+
+export function getCachedActionData(action: string): any | undefined {
+  return cache.get(action)?.data;
 }
 
 async function getJson(action: string, opts: { force?: boolean; optional?: boolean } = {}): Promise<any> {
@@ -81,9 +116,9 @@ async function getJson(action: string, opts: { force?: boolean; optional?: boole
   if (!opts.force) {
     const hit = cache.get(key);
     if (hit && Date.now() - hit.at < CACHE_TTL) return hit.data;
-    const pending = inflight.get(key);
-    if (pending) return pending;
   }
+  const pending = inflight.get(key);
+  if (pending) return pending;
 
   const p = (async () => {
     const res = await getWithRetry(buildScriptActionUrl(action));
@@ -109,40 +144,52 @@ async function getJson(action: string, opts: { force?: boolean; optional?: boole
 // We try to parse the JSON body; if that succeeds with `success:true` we
 // treat it as OK.  If the response is opaque we optimistically assume success.
 async function postToScript(payload: Record<string, unknown>): Promise<any> {
+  const operationId = typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const requestPayload = { ...payload, operationId };
+  const signature = JSON.stringify(payload);
+  const existing = writeInflight.get(signature);
+  if (existing) return existing;
+
+  const request = (async () => {
   const url = getScriptUrl();
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 15000);
+  const timer = setTimeout(() => controller.abort(), 20000);
   let res: Response;
   try {
     res = await fetch(url, {
       method: 'POST',
-      body: JSON.stringify(payload),
+      body: JSON.stringify(requestPayload),
       redirect: 'follow',
       signal: controller.signal,
     });
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
-      throw new Error('連線逾時，請再試一次');
+      throw new Error('連線逾時；Google 可能仍在處理，請先重新整理確認後才重試');
     }
     throw error;
   } finally {
     clearTimeout(timer);
   }
 
-  // Any write makes cached reads stale
-  invalidateCache();
-
-  // Opaque responses (e.g. from no-cors fallback) – assume success
-  if (res.type === 'opaque') return { success: true };
-
+  if (res.type === 'opaque') throw new Error('未能確認 Google Sheet 已收到操作');
+  let json: any;
   try {
-    const json = await res.json();
-    if (json.error) throw new Error(json.error);
-    return json;
+    json = await res.json();
   } catch {
     if (!res.ok) throw new Error(`請求失敗 (${res.status})`);
-    return { success: true };
+    throw new Error('Google Sheet 回覆格式錯誤，未能確認操作');
   }
+  if (!res.ok) throw new Error(json?.error || json?.message || `請求失敗 (${res.status})`);
+  if (json?.error || json?.success === false) throw new Error(json?.error || json?.message || '操作失敗');
+  const action = String(payload.action || '');
+  invalidateActions(INVALIDATIONS[action] || []);
+  return json;
+  })().finally(() => writeInflight.delete(signature));
+
+  writeInflight.set(signature, request);
+  return request;
 }
 
 // ─── Revenue ───
@@ -185,6 +232,16 @@ export async function fetchExpensesByCurrency(currency: 'HKD' | 'RMB', force = f
     throw new Error('無法讀取支出資料: ' + (error instanceof Error ? error.message : ''));
   });
   return (data?.records || []).map((record: any) => ({ ...record, currency }));
+}
+
+export function getCachedRecords(): RevenueRecord[] {
+  return getCachedActionData('getAll')?.records || [];
+}
+
+export function getCachedExpenses(): ExpenseRecord[] {
+  const hkd = (getCachedActionData('getExpenses')?.records || []).map((record: any) => ({ ...record, currency: 'HKD' as const }));
+  const rmb = (getCachedActionData('getExpensesRMB')?.records || []).map((record: any) => ({ ...record, currency: 'RMB' as const }));
+  return [...hkd, ...rmb];
 }
 
 export async function submitExpense(record: Omit<ExpenseRecord, 'id' | 'claimed' | 'claimDate' | 'claimAmount'>): Promise<void> {
@@ -426,6 +483,12 @@ function doGet(e) {
 
 function doPost(e) {
   var data = JSON.parse(e.postData.contents);
+  var operationCache = CacheService.getScriptCache();
+  var operationKey = data.operationId ? 'operation_' + data.operationId : '';
+  if (operationKey && operationCache.get(operationKey)) {
+    return ContentService.createTextOutput(JSON.stringify({ success: true, duplicate: true }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
 
   // ─── 收入 ───
   if (data.action === 'add') {
@@ -541,70 +604,111 @@ function doPost(e) {
 
   // ─── Claim 報銷 (港幣) ───
   if (data.action === 'claimExpenses') {
+    var lock = LockService.getScriptLock();
+    lock.waitLock(10000);
+    try {
     var expSheet = getSheet('支出');
     var claimSheet = getSheet('Claim記錄');
     var claimId = Utilities.getUuid();
     var claimDate = Utilities.formatDate(new Date(), 'Asia/Hong_Kong', 'yyyy-MM-dd');
     var expenseIds = data.expenseIds;
 
-    var allData = expSheet.getDataRange().getValues();
-    for (var i = 1; i < allData.length; i++) {
-      if (expenseIds.indexOf(allData[i][0]) > -1) {
-        expSheet.getRange(i + 1, 8).setValue(true);
-        expSheet.getRange(i + 1, 9).setValue(claimDate);
-        expSheet.getRange(i + 1, 10).setValue(allData[i][6]);
+    var lastRow = expSheet.getLastRow();
+    if (lastRow > 1) {
+      var expenseData = expSheet.getRange(2, 1, lastRow - 1, 10).getValues();
+      var selectedIds = {};
+      expenseIds.forEach(function(id) { selectedIds[String(id)] = true; });
+      for (var i = 0; i < expenseData.length; i++) {
+        if (selectedIds[String(expenseData[i][0])]) {
+          expenseData[i][7] = true;
+          expenseData[i][8] = claimDate;
+          expenseData[i][9] = expenseData[i][6];
+        }
       }
+      expSheet.getRange(2, 8, expenseData.length, 3).setValues(expenseData.map(function(row) { return [row[7], row[8], row[9]]; }));
     }
 
     claimSheet.appendRow([claimId, data.staff, claimDate, data.totalAmount, expenseIds.join(',')]);
+    if (operationKey) operationCache.put(operationKey, claimId, 21600);
 
     return ContentService.createTextOutput(JSON.stringify({ success: true, id: claimId }))
       .setMimeType(ContentService.MimeType.JSON);
+    } finally {
+      lock.releaseLock();
+    }
   }
 
   // ─── Claim 報銷 (人民幣) ───
   if (data.action === 'claimExpensesRMB') {
+    var lock = LockService.getScriptLock();
+    lock.waitLock(10000);
+    try {
     var expSheet = getSheet('支出(人民幣)');
     var claimSheet = getSheet('Claim記錄(人民幣)');
     var claimId = Utilities.getUuid();
     var claimDate = Utilities.formatDate(new Date(), 'Asia/Hong_Kong', 'yyyy-MM-dd');
     var expenseIds = data.expenseIds;
 
-    var allData = expSheet.getDataRange().getValues();
-    for (var i = 1; i < allData.length; i++) {
-      if (expenseIds.indexOf(allData[i][0]) > -1) {
-        expSheet.getRange(i + 1, 8).setValue(true);
-        expSheet.getRange(i + 1, 9).setValue(claimDate);
-        expSheet.getRange(i + 1, 10).setValue(allData[i][6]);
+    var lastRow = expSheet.getLastRow();
+    if (lastRow > 1) {
+      var expenseData = expSheet.getRange(2, 1, lastRow - 1, 10).getValues();
+      var selectedIds = {};
+      expenseIds.forEach(function(id) { selectedIds[String(id)] = true; });
+      for (var i = 0; i < expenseData.length; i++) {
+        if (selectedIds[String(expenseData[i][0])]) {
+          expenseData[i][7] = true;
+          expenseData[i][8] = claimDate;
+          expenseData[i][9] = expenseData[i][6];
+        }
       }
+      expSheet.getRange(2, 8, expenseData.length, 3).setValues(expenseData.map(function(row) { return [row[7], row[8], row[9]]; }));
     }
 
     claimSheet.appendRow([claimId, data.staff, claimDate, data.totalAmount, expenseIds.join(',')]);
+    if (operationKey) operationCache.put(operationKey, claimId, 21600);
 
     return ContentService.createTextOutput(JSON.stringify({ success: true, id: claimId }))
       .setMimeType(ContentService.MimeType.JSON);
+    } finally {
+      lock.releaseLock();
+    }
   }
 
   // ─── 交數確認 ───
   if (data.action === 'confirmHandover') {
+    var lock = LockService.getScriptLock();
+    lock.waitLock(10000);
+    try {
     var revSheet = getSheet('收入');
     var hoSheet = getSheet('交數記錄');
     var hoDate = Utilities.formatDate(new Date(), 'Asia/Hong_Kong', 'yyyy-MM-dd');
     var revenueIds = data.revenueIds;
 
-    var allData = revSheet.getDataRange().getValues();
-    for (var i = 1; i < allData.length; i++) {
-      if (revenueIds.indexOf(allData[i][0]) > -1) {
-        revSheet.getRange(i + 1, 9).setValue(true);
-        revSheet.getRange(i + 1, 10).setValue(hoDate);
-        // 每筆收入獨立寫入交數記錄
-        var hoId = Utilities.getUuid();
-        hoSheet.appendRow([hoId, data.staff, hoDate, allData[i][5], allData[i][0]]);
+    var lastRow = revSheet.getLastRow();
+    var handoverRows = [];
+    if (lastRow > 1) {
+      var allData = revSheet.getRange(2, 1, lastRow - 1, 10).getValues();
+      var selectedIds = {};
+      revenueIds.forEach(function(id) { selectedIds[String(id)] = true; });
+      for (var i = 0; i < allData.length; i++) {
+        if (selectedIds[String(allData[i][0])]) {
+          allData[i][8] = true;
+          allData[i][9] = hoDate;
+          handoverRows.push([Utilities.getUuid(), data.staff, hoDate, allData[i][5], allData[i][0]]);
+        }
       }
+      revSheet.getRange(2, 9, allData.length, 2).setValues(allData.map(function(row) { return [row[8], row[9]]; }));
     }
+    if (handoverRows.length > 0) {
+      hoSheet.getRange(hoSheet.getLastRow() + 1, 1, handoverRows.length, 5).setValues(handoverRows);
+    }
+    if (operationKey) operationCache.put(operationKey, 'done', 21600);
 
     return ContentService.createTextOutput(JSON.stringify({ success: true }))
       .setMimeType(ContentService.MimeType.JSON);
+    } finally {
+      lock.releaseLock();
+    }
   }
 
   // ─── 登入 ───

@@ -13,16 +13,16 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { type ExpenseRecord, type ClaimRecord, type StaffUser, type RevenueRecord, type HandoverRecord, CURRENCY_SYMBOLS } from '@/types/record';
-import { fetchExpenses, fetchClaimHistory, fetchAllUsers, claimExpenses, deleteUser, fetchRecords, confirmHandover, fetchHandoverHistory, clearAllRecords, deleteRecord, deleteExpense, deleteClaimRecord, deleteHandoverRecord, updateClaimRecord, updateHandoverRecord } from '@/lib/googleSheets';
+import { fetchExpenses, fetchClaimHistory, fetchAllUsers, claimExpenses, deleteUser, fetchRecords, confirmHandover, fetchHandoverHistory, clearAllRecords, deleteRecord, deleteExpense, deleteClaimRecord, deleteHandoverRecord, updateClaimRecord, updateHandoverRecord, getCachedExpenses, getCachedRecords } from '@/lib/googleSheets';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 
 const AdminClaimPanel = () => {
   const { toast } = useToast();
-  const [expenses, setExpenses] = useState<ExpenseRecord[]>([]);
+  const [expenses, setExpenses] = useState<ExpenseRecord[]>(getCachedExpenses);
   const [claims, setClaims] = useState<ClaimRecord[]>([]);
   const [users, setUsers] = useState<StaffUser[]>([]);
-  const [revenues, setRevenues] = useState<RevenueRecord[]>([]);
+  const [revenues, setRevenues] = useState<RevenueRecord[]>(getCachedRecords);
   const [handoverHistory, setHandoverHistory] = useState<HandoverRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [claimLoading, setClaimLoading] = useState(false);
@@ -126,8 +126,11 @@ const AdminClaimPanel = () => {
       await claimExpenses(ids, staffToClaim, selectedTotal, claimCurrency);
       const symbol = CURRENCY_SYMBOLS[claimCurrency];
       toast({ title: `已成功 Claim ${symbol}${selectedTotal.toFixed(2)} 給 ${staffToClaim}` });
+      const claimedAt = format(new Date(), 'yyyy-MM-dd');
+      setExpenses(current => current.map(expense => ids.includes(expense.id)
+        ? { ...expense, claimed: true, claimDate: claimedAt, claimAmount: expense.amount }
+        : expense));
       setSelectedIds(new Set());
-      await loadData();
     } catch (err) {
       toast({ title: 'Claim 失敗', variant: 'destructive' });
     } finally {
@@ -186,8 +189,11 @@ const AdminClaimPanel = () => {
     try {
       await confirmHandover(ids, staffToHandover, handoverSelectedTotal);
       toast({ title: `已確認 ${staffToHandover} 交數 $${handoverSelectedTotal.toFixed(2)}` });
+      const handedAt = format(new Date(), 'yyyy-MM-dd');
+      setRevenues(current => current.map(revenue => ids.includes(revenue.id)
+        ? { ...revenue, handed: true, handoverDate: handedAt }
+        : revenue));
       setHandoverSelectedIds(new Set());
-      await loadData();
     } catch (err) {
       toast({ title: '交數確認失敗', variant: 'destructive' });
     } finally {
