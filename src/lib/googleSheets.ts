@@ -122,6 +122,9 @@ async function postToScript(payload: Record<string, unknown>): Promise<any> {
     redirect: 'follow',
   });
 
+  // Any write makes cached reads stale
+  invalidateCache();
+
   // Opaque responses (e.g. from no-cors fallback) – assume success
   if (res.type === 'opaque') return { success: true };
 
