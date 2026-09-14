@@ -1,75 +1,39 @@
 import { RevenueRecord, ExpenseRecord, StaffUser, ClaimRecord, HandoverRecord } from '@/types/record';
+import { supabase } from '@/integrations/supabase/client';
 
+const FUNCTION_NAME = 'sheets';
+
+// 舊版設定介面仍會引用；現時已改為直接連接 Google Sheet，不再需要網址。
 const SCRIPT_URL_KEY = 'google_apps_script_url';
-const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz3rfXSSFm_93v-53dnBXdYgpWWa5yjLgWmRgU5K83jslaG0JK2VdR_tChTTY8xv764/exec';
-
-function normalizeScriptUrl(url: string): string {
-  const trimmed = url.trim();
-  if (!trimmed) return DEFAULT_SCRIPT_URL;
-
-  try {
-    const parsed = new URL(trimmed);
-    parsed.search = '';
-    parsed.hash = '';
-    parsed.pathname = parsed.pathname.replace(/\/+$/, '');
-    return parsed.toString();
-  } catch {
-    return DEFAULT_SCRIPT_URL;
-  }
-}
-
-function buildScriptActionUrl(action: string): string {
-  const parsed = new URL(getScriptUrl());
-  parsed.searchParams.set('action', action);
-  return parsed.toString();
-}
-
 export function getScriptUrl(): string {
-  const stored = localStorage.getItem(SCRIPT_URL_KEY);
-  if (!stored) return DEFAULT_SCRIPT_URL;
-
-  const normalizedStored = normalizeScriptUrl(stored);
-
-  if (normalizedStored !== stored) {
-    localStorage.setItem(SCRIPT_URL_KEY, normalizedStored);
-  }
-
-  return normalizedStored;
+  return localStorage.getItem(SCRIPT_URL_KEY) || '';
 }
-
 export function setScriptUrl(url: string): void {
-  localStorage.setItem(SCRIPT_URL_KEY, normalizeScriptUrl(url));
+  localStorage.setItem(SCRIPT_URL_KEY, url.trim());
   invalidateCache();
 }
 
-// GET with timeout + retry — Apps Script often returns transient 429/500
-// or simply stalls, which used to surface as "無法讀取支出資料".
-async function getWithRetry(url: string, attempts = 1, timeoutMs = 30000): Promise<Response> {
-  let lastErr: unknown;
-  for (let i = 0; i < attempts; i++) {
+async function callFunction(payload: Record<string, unknown>): Promise<any> {
+  const { data, error } = await supabase.functions.invoke(FUNCTION_NAME, { body: payload });
+  if (error) {
+    let details = error.message;
     try {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), timeoutMs);
-      try {
-        const res = await fetch(url, { redirect: 'follow', signal: controller.signal });
-        if (res.ok) return res;
-        lastErr = new Error(`HTTP ${res.status}`);
-        if (res.status < 500 && res.status !== 429) break;
-      } finally {
-        clearTimeout(timer);
+      const ctx = (error as any)?.context;
+      if (ctx && typeof ctx.text === 'function') {
+        const text = await ctx.text();
+        const parsed = JSON.parse(text);
+        details = parsed?.error || parsed?.message || text;
       }
-    } catch (e) {
-      lastErr = e;
+    } catch {
+      /* keep original message */
     }
-    if (i < attempts - 1) await new Promise((r) => setTimeout(r, 800 * (i + 1)));
+    throw new Error(details || '連線失敗');
   }
-  throw lastErr instanceof Error ? lastErr : new Error('請求失敗');
+  if (data?.error) throw new Error(data.error);
+  return data;
 }
 
 // ─── Shared cache + in-flight de-duplication ───
-// Several panels request the same Apps Script actions at the same time.
-// Apps Script is slow and rate-limited, so we share one request and keep a
-// short-lived cache; every write invalidates it.
 const CACHE_TTL = 60_000;
 const cache = new Map<string, { at: number; data: any }>();
 const inflight = new Map<string, Promise<any>>();
@@ -104,7 +68,6 @@ const INVALIDATIONS: Record<string, string[]> = {
   updateClaimRecordRMB: ['getClaimHistoryRMB'],
   register: ['getAllUsers'],
   deleteUser: ['getAllUsers'],
-  clearAllRecords: ['getAll', 'getExpenses', 'getExpensesRMB', 'getClaimHistory', 'getClaimHistoryRMB', 'getHandoverHistory'],
 };
 
 export function getCachedActionData(action: string): any | undefined {
@@ -121,8 +84,7 @@ async function getJson(action: string, opts: { force?: boolean; optional?: boole
   if (pending) return pending;
 
   const p = (async () => {
-    const res = await getWithRetry(buildScriptActionUrl(action));
-    const json = await res.json();
+    const json = await callFunction({ action });
     cache.set(key, { at: Date.now(), data: json });
     return json;
   })()
@@ -138,55 +100,17 @@ async function getJson(action: string, opts: { force?: boolean; optional?: boole
   return p;
 }
 
-
-// Helper for POST requests – Google Apps Script redirects can cause
-// `res.ok` to be false even when the write succeeds (CORS on redirect).
-// We try to parse the JSON body; if that succeeds with `success:true` we
-// treat it as OK.  If the response is opaque we optimistically assume success.
 async function postToScript(payload: Record<string, unknown>, suppliedOperationId?: string): Promise<any> {
-  const operationId = suppliedOperationId || (typeof crypto !== 'undefined' && crypto.randomUUID
-    ? crypto.randomUUID()
-    : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
-  const requestPayload = { ...payload, operationId };
-  const signature = JSON.stringify(payload);
+  const action = String(payload.action || '');
+  const signature = JSON.stringify(payload) + (suppliedOperationId || '');
   const existing = writeInflight.get(signature);
   if (existing) return existing;
 
   const request = (async () => {
-  const url = getScriptUrl();
-  const controller = new AbortController();
-  const action = String(payload.action || '');
-  const timeoutMs = action === 'login' ? 8000 : 20000;
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  let res: Response;
-  try {
-    res = await fetch(url, {
-      method: 'POST',
-      body: JSON.stringify(requestPayload),
-      redirect: 'follow',
-      signal: controller.signal,
-    });
-  } catch (error) {
-    if (error instanceof DOMException && error.name === 'AbortError') {
-      throw new Error('連線逾時；Google 可能仍在處理，請先重新整理確認後才重試');
-    }
-    throw error;
-  } finally {
-    clearTimeout(timer);
-  }
-
-  if (res.type === 'opaque') throw new Error('未能確認 Google Sheet 已收到操作');
-  let json: any;
-  try {
-    json = await res.json();
-  } catch {
-    if (!res.ok) throw new Error(`請求失敗 (${res.status})`);
-    throw new Error('Google Sheet 回覆格式錯誤，未能確認操作');
-  }
-  if (!res.ok) throw new Error(json?.error || json?.message || `請求失敗 (${res.status})`);
-  if (json?.error || json?.success === false) throw new Error(json?.error || json?.message || '操作失敗');
-  invalidateActions(INVALIDATIONS[action] || []);
-  return json;
+    const json = await callFunction(payload);
+    if (json?.success === false) throw new Error(json?.message || json?.error || '操作失敗');
+    invalidateActions(INVALIDATIONS[action] || []);
+    return json;
   })().finally(() => writeInflight.delete(signature));
 
   writeInflight.set(signature, request);
