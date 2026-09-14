@@ -143,10 +143,10 @@ async function getJson(action: string, opts: { force?: boolean; optional?: boole
 // `res.ok` to be false even when the write succeeds (CORS on redirect).
 // We try to parse the JSON body; if that succeeds with `success:true` we
 // treat it as OK.  If the response is opaque we optimistically assume success.
-async function postToScript(payload: Record<string, unknown>): Promise<any> {
-  const operationId = typeof crypto !== 'undefined' && crypto.randomUUID
+async function postToScript(payload: Record<string, unknown>, suppliedOperationId?: string): Promise<any> {
+  const operationId = suppliedOperationId || (typeof crypto !== 'undefined' && crypto.randomUUID
     ? crypto.randomUUID()
-    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
   const requestPayload = { ...payload, operationId };
   const signature = JSON.stringify(payload);
   const existing = writeInflight.get(signature);
@@ -245,9 +245,9 @@ export function getCachedExpenses(): ExpenseRecord[] {
   return [...hkd, ...rmb];
 }
 
-export async function submitExpense(record: Omit<ExpenseRecord, 'id' | 'claimed' | 'claimDate' | 'claimAmount'>): Promise<void> {
+export async function submitExpense(record: Omit<ExpenseRecord, 'id' | 'claimed' | 'claimDate' | 'claimAmount'>, operationId?: string): Promise<void> {
   const action = record.currency === 'RMB' ? 'addExpenseRMB' : 'addExpense';
-  await postToScript({ action, ...record });
+  await postToScript({ action, ...record }, operationId);
 }
 
 export async function updateExpense(record: ExpenseRecord): Promise<void> {
@@ -548,6 +548,7 @@ function doPost(e) {
     } else {
       sheet.appendRow([id, data.date, data.department, data.staff, data.category, data.remarks || '', data.amount, false, '', 0]);
     }
+    if (operationKey) operationCache.put(operationKey, id, 21600);
     return ContentService.createTextOutput(JSON.stringify({ success: true, id: id }))
       .setMimeType(ContentService.MimeType.JSON);
   }
@@ -581,6 +582,7 @@ function doPost(e) {
     } else {
       sheet.appendRow([id, data.date, data.department, data.staff, data.category, data.remarks || '', data.amount, false, '', 0]);
     }
+    if (operationKey) operationCache.put(operationKey, id, 21600);
     return ContentService.createTextOutput(JSON.stringify({ success: true, id: id }))
       .setMimeType(ContentService.MimeType.JSON);
   }
