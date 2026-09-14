@@ -43,29 +43,25 @@ const AdminClaimPanel = () => {
   const [editClaimForm, setEditClaimForm] = useState({ staff: '', claimDate: '', totalAmount: '' });
   const [editHandoverForm, setEditHandoverForm] = useState({ staff: '', handoverDate: '', totalAmount: '' });
   const [editSaving, setEditSaving] = useState(false);
+  const [activeAdminTab, setActiveAdminTab] = useState('dashboard');
 
-  const loadData = async (force = false) => {
+  const loadData = async (force = false, tab = activeAdminTab) => {
+    if (tab === 'dashboard') return;
     setLoading(true);
-    // Partial failures should not wipe the whole panel — load each source
-    // independently and only warn about the ones that failed.
-    const [expR, claimR, userR, revR, hoR] = await Promise.allSettled([
-      fetchExpenses(force), fetchClaimHistory(force), fetchAllUsers(force), fetchRecords(force), fetchHandoverHistory(force)
-    ]);
-    if (expR.status === 'fulfilled') setExpenses(expR.value);
-    if (claimR.status === 'fulfilled') setClaims(claimR.value);
-    if (userR.status === 'fulfilled') setUsers(userR.value);
-    if (revR.status === 'fulfilled') setRevenues(revR.value);
-    if (hoR.status === 'fulfilled') setHandoverHistory(hoR.value);
-
-    const failed = [expR, claimR, userR, revR, hoR].filter(r => r.status === 'rejected').length;
-    if (failed > 0) {
-      toast({ title: `部分資料載入失敗（${failed}）`, description: '請稍後按重新整理再試', variant: 'destructive' });
+    try {
+      if (tab === 'handover') setRevenues(await fetchRecords(force));
+      if (tab === 'claim') setExpenses(await fetchExpenses(force));
+      if (tab === 'handover-history') setHandoverHistory(await fetchHandoverHistory(force));
+      if (tab === 'history') setClaims(await fetchClaimHistory(force));
+      if (tab === 'users') setUsers(await fetchAllUsers(force));
+    } catch {
+      toast({ title: '資料載入失敗', description: '請稍後再試', variant: 'destructive' });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
-
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(false, activeAdminTab); }, [activeAdminTab]);
 
   // ─── Claim logic ───
   const staffNames = useMemo(() => {
@@ -320,18 +316,9 @@ const AdminClaimPanel = () => {
   const sortedClaims = useMemo(() => [...claims].sort((a, b) => b.claimDate.localeCompare(a.claimDate)), [claims]);
   const sortedHandoverHistory = useMemo(() => [...handoverHistory].sort((a, b) => b.handoverDate.localeCompare(a.handoverDate)), [handoverHistory]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-16">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        <span className="ml-2 text-muted-foreground">載入中...</span>
-      </div>
-    );
-  }
-
   return (
     <>
-      <Tabs defaultValue="dashboard" className="space-y-4">
+      <Tabs value={activeAdminTab} onValueChange={setActiveAdminTab} className="space-y-4">
         <TabsList className="grid w-full grid-cols-6 h-auto min-h-11 gap-0.5">
           <TabsTrigger value="dashboard" className="text-[11px] sm:text-xs gap-0.5 px-1 py-1.5 flex-col sm:flex-row sm:gap-1"><BarChart3 className="h-3.5 w-3.5 shrink-0" /><span>圖表</span></TabsTrigger>
           <TabsTrigger value="handover" className="text-[11px] sm:text-xs gap-0.5 px-1 py-1.5 flex-col sm:flex-row sm:gap-1"><Banknote className="h-3.5 w-3.5 shrink-0" /><span>交數</span></TabsTrigger>
@@ -340,6 +327,12 @@ const AdminClaimPanel = () => {
           <TabsTrigger value="history" className="text-[11px] sm:text-xs gap-0.5 px-1 py-1.5 flex-col sm:flex-row sm:gap-1"><History className="h-3.5 w-3.5 shrink-0" /><span>Claim記錄</span></TabsTrigger>
           <TabsTrigger value="users" className="text-[11px] sm:text-xs gap-0.5 px-1 py-1.5 flex-col sm:flex-row sm:gap-1"><Users className="h-3.5 w-3.5 shrink-0" /><span>帳戶</span></TabsTrigger>
         </TabsList>
+
+        {loading && (
+          <div className="flex items-center justify-center py-2 text-sm text-muted-foreground">
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />載入中...
+          </div>
+        )}
 
         {/* Dashboard */}
         <TabsContent value="dashboard">
