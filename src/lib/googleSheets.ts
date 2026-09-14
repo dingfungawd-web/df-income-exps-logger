@@ -225,20 +225,14 @@ export async function claimExpenses(expenseIds: string[], staff: string, totalAm
   await postToScript({ action, expenseIds, staff, totalAmount });
 }
 
-export async function fetchClaimHistory(): Promise<ClaimRecord[]> {
-  const [hkdRes, rmbRes] = await Promise.all([
-    fetch(buildScriptActionUrl('getClaimHistory'), { redirect: 'follow' }),
-    fetch(buildScriptActionUrl('getClaimHistoryRMB'), { redirect: 'follow' }),
+export async function fetchClaimHistory(force = false): Promise<ClaimRecord[]> {
+  const [hkdData, rmbData] = await Promise.all([
+    getJson('getClaimHistory', { force, optional: true }),
+    getJson('getClaimHistoryRMB', { force, optional: true }),
   ]);
-  if (!hkdRes.ok) throw new Error('無法讀取 Claim 記錄');
-  const hkdData = await hkdRes.json();
-  const hkdRecords: ClaimRecord[] = (hkdData.records || []).map((r: any) => ({ ...r, currency: 'HKD' as const }));
 
-  let rmbRecords: ClaimRecord[] = [];
-  if (rmbRes.ok) {
-    const rmbData = await rmbRes.json();
-    rmbRecords = (rmbData.records || []).map((r: any) => ({ ...r, currency: 'RMB' as const }));
-  }
+  const hkdRecords: ClaimRecord[] = (hkdData?.records || []).map((r: any) => ({ ...r, currency: 'HKD' as const }));
+  const rmbRecords: ClaimRecord[] = (rmbData?.records || []).map((r: any) => ({ ...r, currency: 'RMB' as const }));
 
   return [...hkdRecords, ...rmbRecords];
 }
