@@ -139,12 +139,11 @@ async function postToScript(payload: Record<string, unknown>): Promise<any> {
 }
 
 // ─── Revenue ───
-export async function fetchRecords(): Promise<RevenueRecord[]> {
-  const res = await fetch(buildScriptActionUrl('getAll'), { redirect: 'follow' });
-  if (!res.ok) throw new Error('無法讀取資料');
-  const data = await res.json();
-  return data.records || [];
+export async function fetchRecords(force = false): Promise<RevenueRecord[]> {
+  const data = await getJson('getAll', { force });
+  return data?.records || [];
 }
+
 
 export async function submitRecord(record: Omit<RevenueRecord, 'id'>): Promise<void> {
   await postToScript({ action: 'add', ...record });
