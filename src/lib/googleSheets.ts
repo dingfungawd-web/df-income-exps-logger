@@ -70,6 +70,46 @@ async function getWithRetry(url: string, attempts = 3, timeoutMs = 30000): Promi
   throw lastErr instanceof Error ? lastErr : new Error('請求失敗');
 }
 
+// ─── Shared cache + in-flight de-duplication ───
+// Several panels request the same Apps Script actions at the same time.
+// Apps Script is slow and rate-limited, so we share one request and keep a
+// short-lived cache; every write invalidates it.
+const CACHE_TTL = 60_000;
+const cache = new Map<string, { at: number; data: any }>();
+const inflight = new Map<string, Promise<any>>();
+
+export function invalidateCache(): void {
+  cache.clear();
+}
+
+async function getJson(action: string, opts: { force?: boolean; optional?: boolean } = {}): Promise<any> {
+  const key = action;
+  if (!opts.force) {
+    const hit = cache.get(key);
+    if (hit && Date.now() - hit.at < CACHE_TTL) return hit.data;
+    const pending = inflight.get(key);
+    if (pending) return pending;
+  }
+
+  const p = (async () => {
+    const res = await getWithRetry(buildScriptActionUrl(action));
+    const json = await res.json();
+    cache.set(key, { at: Date.now(), data: json });
+    return json;
+  })()
+    .catch((e) => {
+      if (opts.optional) return null;
+      throw e;
+    })
+    .finally(() => {
+      inflight.delete(key);
+    });
+
+  inflight.set(key, p);
+  return p;
+}
+
+
 // Helper for POST requests – Google Apps Script redirects can cause
 // `res.ok` to be false even when the write succeeds (CORS on redirect).
 // We try to parse the JSON body; if that succeeds with `success:true` we
