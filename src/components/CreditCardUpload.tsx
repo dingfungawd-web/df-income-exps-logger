@@ -109,8 +109,18 @@ const CreditCardUpload = () => {
       let successCount = 0;
       let done = 0;
       const failed: ParsedTransaction[] = [];
+      let consecutiveFailures = 0;
+      let connectionUnavailable = false;
 
       const sendOne = async (txn: ParsedTransaction) => {
+        if (connectionUnavailable) {
+          failed.push(txn);
+          setSubmitProgress({ done: ++done, total: selectedTxns.length });
+          return;
+        }
+        const operationId = typeof crypto !== 'undefined' && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
         for (let attempt = 0; attempt < 3; attempt++) {
           try {
             await submitExpense({
@@ -121,11 +131,17 @@ const CreditCardUpload = () => {
               amount: txn.amount,
               remarks: txn.remarks || txn.description,
               currency: 'HKD',
-            });
+            }, operationId);
             successCount++;
+            consecutiveFailures = 0;
             setSubmitProgress({ done: ++done, total: selectedTxns.length });
             return;
           } catch {
+            consecutiveFailures++;
+            if (consecutiveFailures >= 4) {
+              connectionUnavailable = true;
+              break;
+            }
             await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
           }
         }

@@ -10,7 +10,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { type RevenueRecord, type ExpenseRecord, CURRENCY_SYMBOLS, ADMIN_DEPARTMENTS, EXPENSE_CATEGORIES } from '@/types/record';
-import { fetchRecords, fetchExpensesByCurrency } from '@/lib/googleSheets';
+import { fetchRecords, fetchExpensesByCurrency, getCachedActionData } from '@/lib/googleSheets';
 import { useToast } from '@/hooks/use-toast';
 import type { DateRange } from 'react-day-picker';
 
@@ -35,9 +35,9 @@ const PIE_COLORS = [
 
 const AdminDashboard = () => {
   const { toast } = useToast();
-  const [revenues, setRevenues] = useState<RevenueRecord[]>([]);
-  const [hkdExpenses, setHkdExpenses] = useState<ExpenseRecord[]>([]);
-  const [rmbExpenses, setRmbExpenses] = useState<ExpenseRecord[]>([]);
+  const [revenues, setRevenues] = useState<RevenueRecord[]>(() => getCachedActionData('getAll')?.records || []);
+  const [hkdExpenses, setHkdExpenses] = useState<ExpenseRecord[]>(() => (getCachedActionData('getExpenses')?.records || []).map((record: ExpenseRecord) => ({ ...record, currency: 'HKD' })));
+  const [rmbExpenses, setRmbExpenses] = useState<ExpenseRecord[]>(() => (getCachedActionData('getExpensesRMB')?.records || []).map((record: ExpenseRecord) => ({ ...record, currency: 'RMB' })));
   const [loading, setLoading] = useState(false);
   const [timeRange, setTimeRange] = useState<TimeRange>('month');
   const [periodCount, setPeriodCount] = useState(1);

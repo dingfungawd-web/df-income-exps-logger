@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { type ExpenseRecord, DEPARTMENTS, EXPENSE_CATEGORIES, CURRENCY_SYMBOLS } from '@/types/record';
-import { fetchExpenses, deleteExpense } from '@/lib/googleSheets';
+import { fetchExpenses, deleteExpense, getCachedExpenses } from '@/lib/googleSheets';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useStaff } from '@/contexts/StaffContext';
 import { useToast } from '@/hooks/use-toast';
@@ -20,7 +20,7 @@ interface ExpenseRecordsTableProps {
 const ExpenseRecordsTable = ({ onEdit, refreshKey }: ExpenseRecordsTableProps) => {
   const { staffName, isAdmin } = useStaff();
   const { toast } = useToast();
-  const [records, setRecords] = useState<ExpenseRecord[]>([]);
+  const [records, setRecords] = useState<ExpenseRecord[]>(getCachedExpenses);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDept, setFilterDept] = useState<string>('all');
@@ -171,7 +171,7 @@ const ExpenseRecordsTable = ({ onEdit, refreshKey }: ExpenseRecordsTableProps) =
         </div>
       </div>
 
-      {loading ? (
+      {loading && records.length === 0 ? (
         <div className="flex items-center justify-center py-16">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           <span className="ml-2 text-muted-foreground">載入中...</span>
@@ -256,8 +256,8 @@ const ExpenseRecordsTable = ({ onEdit, refreshKey }: ExpenseRecordsTableProps) =
                                 onClick={async () => {
                                   try {
                                     await deleteExpense(record.id, record.currency || 'HKD');
+                                    setRecords(current => current.filter(item => item.id !== record.id));
                                     toast({ title: '支出記錄已刪除' });
-                                    loadRecords();
                                   } catch {
                                     toast({ title: '刪除失敗', variant: 'destructive' });
                                   }

@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { type RevenueRecord, DEPARTMENTS, PAYMENT_METHODS } from '@/types/record';
-import { fetchRecords, deleteRecord } from '@/lib/googleSheets';
+import { fetchRecords, deleteRecord, getCachedRecords } from '@/lib/googleSheets';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useStaff } from '@/contexts/StaffContext';
 import { useToast } from '@/hooks/use-toast';
@@ -29,7 +29,7 @@ const paymentMethodColors: Record<string, string> = {
 const RecordsTable = ({ onEdit, refreshKey }: RecordsTableProps) => {
   const { staffName, isAdmin } = useStaff();
   const { toast } = useToast();
-  const [records, setRecords] = useState<RevenueRecord[]>([]);
+  const [records, setRecords] = useState<RevenueRecord[]>(getCachedRecords);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDept, setFilterDept] = useState<string>('all');
@@ -207,7 +207,7 @@ const RecordsTable = ({ onEdit, refreshKey }: RecordsTableProps) => {
       </div>
 
       {/* Table */}
-      {loading ? (
+      {loading && records.length === 0 ? (
         <div className="flex items-center justify-center py-16">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           <span className="ml-2 text-muted-foreground">載入中...</span>
@@ -320,8 +320,8 @@ const RecordsTable = ({ onEdit, refreshKey }: RecordsTableProps) => {
                                 onClick={async () => {
                                   try {
                                     await deleteRecord(record.id);
+                                    setRecords(current => current.filter(item => item.id !== record.id));
                                     toast({ title: '收入記錄已刪除' });
-                                    loadRecords();
                                   } catch {
                                     toast({ title: '刪除失敗', variant: 'destructive' });
                                   }

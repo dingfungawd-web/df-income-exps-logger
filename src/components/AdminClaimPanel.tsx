@@ -13,16 +13,16 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { type ExpenseRecord, type ClaimRecord, type StaffUser, type RevenueRecord, type HandoverRecord, CURRENCY_SYMBOLS } from '@/types/record';
-import { fetchExpenses, fetchClaimHistory, fetchAllUsers, claimExpenses, deleteUser, fetchRecords, confirmHandover, fetchHandoverHistory, clearAllRecords, deleteRecord, deleteExpense, deleteClaimRecord, deleteHandoverRecord, updateClaimRecord, updateHandoverRecord } from '@/lib/googleSheets';
+import { fetchExpenses, fetchClaimHistory, fetchAllUsers, claimExpenses, deleteUser, fetchRecords, confirmHandover, fetchHandoverHistory, clearAllRecords, deleteRecord, deleteExpense, deleteClaimRecord, deleteHandoverRecord, updateClaimRecord, updateHandoverRecord, getCachedExpenses, getCachedRecords } from '@/lib/googleSheets';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 
 const AdminClaimPanel = () => {
   const { toast } = useToast();
-  const [expenses, setExpenses] = useState<ExpenseRecord[]>([]);
+  const [expenses, setExpenses] = useState<ExpenseRecord[]>(getCachedExpenses);
   const [claims, setClaims] = useState<ClaimRecord[]>([]);
   const [users, setUsers] = useState<StaffUser[]>([]);
-  const [revenues, setRevenues] = useState<RevenueRecord[]>([]);
+  const [revenues, setRevenues] = useState<RevenueRecord[]>(getCachedRecords);
   const [handoverHistory, setHandoverHistory] = useState<HandoverRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [claimLoading, setClaimLoading] = useState(false);
@@ -126,8 +126,11 @@ const AdminClaimPanel = () => {
       await claimExpenses(ids, staffToClaim, selectedTotal, claimCurrency);
       const symbol = CURRENCY_SYMBOLS[claimCurrency];
       toast({ title: `已成功 Claim ${symbol}${selectedTotal.toFixed(2)} 給 ${staffToClaim}` });
+      const claimedAt = format(new Date(), 'yyyy-MM-dd');
+      setExpenses(current => current.map(expense => ids.includes(expense.id)
+        ? { ...expense, claimed: true, claimDate: claimedAt, claimAmount: expense.amount }
+        : expense));
       setSelectedIds(new Set());
-      await loadData();
     } catch (err) {
       toast({ title: 'Claim 失敗', variant: 'destructive' });
     } finally {
@@ -186,8 +189,11 @@ const AdminClaimPanel = () => {
     try {
       await confirmHandover(ids, staffToHandover, handoverSelectedTotal);
       toast({ title: `已確認 ${staffToHandover} 交數 $${handoverSelectedTotal.toFixed(2)}` });
+      const handedAt = format(new Date(), 'yyyy-MM-dd');
+      setRevenues(current => current.map(revenue => ids.includes(revenue.id)
+        ? { ...revenue, handed: true, handoverDate: handedAt }
+        : revenue));
       setHandoverSelectedIds(new Set());
-      await loadData();
     } catch (err) {
       toast({ title: '交數確認失敗', variant: 'destructive' });
     } finally {
@@ -257,9 +263,11 @@ const AdminClaimPanel = () => {
         claimDate: editClaimForm.claimDate,
         totalAmount: parseFloat(editClaimForm.totalAmount),
       }, editingClaim.currency || 'HKD');
+      setClaims(current => current.map(claim => claim.id === editingClaim.id
+        ? { ...claim, staff: editClaimForm.staff, claimDate: editClaimForm.claimDate, totalAmount: Number(editClaimForm.totalAmount) }
+        : claim));
       toast({ title: 'Claim 記錄已更新' });
       setEditingClaim(null);
-      await loadData();
     } catch {
       toast({ title: '更新失敗', variant: 'destructive' });
     } finally {
@@ -286,9 +294,11 @@ const AdminClaimPanel = () => {
         handoverDate: editHandoverForm.handoverDate,
         totalAmount: parseFloat(editHandoverForm.totalAmount),
       });
+      setHandoverHistory(current => current.map(item => item.id === editingHandover.id
+        ? { ...item, staff: editHandoverForm.staff, handoverDate: editHandoverForm.handoverDate, totalAmount: Number(editHandoverForm.totalAmount) }
+        : item));
       toast({ title: '交數記錄已更新' });
       setEditingHandover(null);
-      await loadData();
     } catch {
       toast({ title: '更新失敗', variant: 'destructive' });
     } finally {
@@ -425,7 +435,7 @@ const AdminClaimPanel = () => {
                                 <AlertDialogFooter>
                                   <AlertDialogCancel>取消</AlertDialogCancel>
                                   <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={async () => {
-                                    try { await deleteRecord(rev.id); toast({ title: '收入記錄已刪除' }); loadData(); } catch { toast({ title: '刪除失敗', variant: 'destructive' }); }
+                                    try { await deleteRecord(rev.id); setRevenues(current => current.filter(item => item.id !== rev.id)); toast({ title: '收入記錄已刪除' }); } catch { toast({ title: '刪除失敗', variant: 'destructive' }); }
                                   }}>確定刪除</AlertDialogAction>
                                 </AlertDialogFooter>
                               </AlertDialogContent>
@@ -531,7 +541,7 @@ const AdminClaimPanel = () => {
                                 <AlertDialogFooter>
                                   <AlertDialogCancel>取消</AlertDialogCancel>
                                   <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={async () => {
-                                    try { await deleteExpense(exp.id, exp.currency || 'HKD'); toast({ title: '支出記錄已刪除' }); loadData(); } catch { toast({ title: '刪除失敗', variant: 'destructive' }); }
+                                    try { await deleteExpense(exp.id, exp.currency || 'HKD'); setExpenses(current => current.filter(item => item.id !== exp.id)); toast({ title: '支出記錄已刪除' }); } catch { toast({ title: '刪除失敗', variant: 'destructive' }); }
                                   }}>確定刪除</AlertDialogAction>
                                 </AlertDialogFooter>
                               </AlertDialogContent>
@@ -620,7 +630,7 @@ const AdminClaimPanel = () => {
                                   <AlertDialogFooter>
                                     <AlertDialogCancel>取消</AlertDialogCancel>
                                     <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={async () => {
-                                      try { await deleteHandoverRecord(h.id); toast({ title: '交數記錄已刪除，收入已還原為未交數' }); loadData(); } catch { toast({ title: '刪除失敗', variant: 'destructive' }); }
+                                      try { await deleteHandoverRecord(h.id); setHandoverHistory(current => current.filter(item => item.id !== h.id)); toast({ title: '交數記錄已刪除，收入已還原為未交數' }); } catch { toast({ title: '刪除失敗', variant: 'destructive' }); }
                                     }}>確定刪除</AlertDialogAction>
                                   </AlertDialogFooter>
                                 </AlertDialogContent>
@@ -716,7 +726,7 @@ const AdminClaimPanel = () => {
                                   <AlertDialogFooter>
                                     <AlertDialogCancel>取消</AlertDialogCancel>
                                     <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={async () => {
-                                      try { await deleteClaimRecord(claim.id, claim.currency || 'HKD'); toast({ title: 'Claim 記錄已刪除，支出已還原為未 Claim' }); loadData(); } catch { toast({ title: '刪除失敗', variant: 'destructive' }); }
+                                      try { await deleteClaimRecord(claim.id, claim.currency || 'HKD'); setClaims(current => current.filter(item => item.id !== claim.id)); toast({ title: 'Claim 記錄已刪除，支出已還原為未 Claim' }); } catch { toast({ title: '刪除失敗', variant: 'destructive' }); }
                                     }}>確定刪除</AlertDialogAction>
                                   </AlertDialogFooter>
                                 </AlertDialogContent>
@@ -767,8 +777,8 @@ const AdminClaimPanel = () => {
                                 if (!confirm(`確定要刪除帳戶「${user.name}」嗎？`)) return;
                                 try {
                                   await deleteUser(user.name);
+                                  setUsers(current => current.filter(item => item.name !== user.name));
                                   toast({ title: `已刪除帳戶「${user.name}」` });
-                                  await loadData();
                                 } catch {
                                   toast({ title: '刪除失敗', variant: 'destructive' });
                                 }
