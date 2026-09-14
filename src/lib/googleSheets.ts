@@ -44,7 +44,7 @@ export function setScriptUrl(url: string): void {
 
 // GET with timeout + retry — Apps Script often returns transient 429/500
 // or simply stalls, which used to surface as "無法讀取支出資料".
-async function getWithRetry(url: string, attempts = 1, timeoutMs = 10000): Promise<Response> {
+async function getWithRetry(url: string, attempts = 1, timeoutMs = 30000): Promise<Response> {
   let lastErr: unknown;
   for (let i = 0; i < attempts; i++) {
     try {
