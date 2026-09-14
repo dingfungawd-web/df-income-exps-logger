@@ -154,11 +154,9 @@ export async function updateRecord(record: RevenueRecord): Promise<void> {
 }
 
 // ─── Handover 交數 ───
-export async function fetchHandoverHistory(): Promise<HandoverRecord[]> {
-  const res = await fetch(buildScriptActionUrl('getHandoverHistory'), { redirect: 'follow' });
-  if (!res.ok) throw new Error('無法讀取交數記錄');
-  const data = await res.json();
-  return data.records || [];
+export async function fetchHandoverHistory(force = false): Promise<HandoverRecord[]> {
+  const data = await getJson('getHandoverHistory', { force, optional: true });
+  return data?.records || [];
 }
 
 export async function confirmHandover(revenueIds: string[], staff: string, totalAmount: number): Promise<void> {
@@ -166,25 +164,16 @@ export async function confirmHandover(revenueIds: string[], staff: string, total
 }
 
 // ─── Expenses ───
-export async function fetchExpenses(): Promise<ExpenseRecord[]> {
-  const [hkdRes, rmbRes] = await Promise.all([
-    getWithRetry(buildScriptActionUrl('getExpenses')).catch((e) => {
+export async function fetchExpenses(force = false): Promise<ExpenseRecord[]> {
+  const [hkdData, rmbData] = await Promise.all([
+    getJson('getExpenses', { force }).catch((e) => {
       throw new Error('無法讀取支出資料: ' + (e instanceof Error ? e.message : ''));
     }),
-    getWithRetry(buildScriptActionUrl('getExpensesRMB')).catch(() => null),
+    getJson('getExpensesRMB', { force, optional: true }),
   ]);
-  const hkdData = await hkdRes.json();
-  const hkdRecords: ExpenseRecord[] = (hkdData.records || []).map((r: any) => ({ ...r, currency: 'HKD' as const }));
 
-  let rmbRecords: ExpenseRecord[] = [];
-  if (rmbRes) {
-    try {
-      const rmbData = await rmbRes.json();
-      rmbRecords = (rmbData.records || []).map((r: any) => ({ ...r, currency: 'RMB' as const }));
-    } catch {
-      rmbRecords = [];
-    }
-  }
+  const hkdRecords: ExpenseRecord[] = (hkdData?.records || []).map((r: any) => ({ ...r, currency: 'HKD' as const }));
+  const rmbRecords: ExpenseRecord[] = (rmbData?.records || []).map((r: any) => ({ ...r, currency: 'RMB' as const }));
 
   return [...hkdRecords, ...rmbRecords];
 }
