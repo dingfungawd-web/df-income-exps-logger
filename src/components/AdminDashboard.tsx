@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { format, parseISO, startOfDay, startOfMonth, startOfYear, endOfDay, endOfMonth, endOfYear, eachDayOfInterval, isWithinInterval, subDays, subMonths, subYears, differenceInCalendarDays, min as minDate } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
-import { Loader2, TrendingUp, TrendingDown, Wallet, CalendarIcon, RefreshCw } from 'lucide-react';
+import { TrendingUp, TrendingDown, Wallet, CalendarIcon, RefreshCw } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, LineChart, Line, PieChart, Pie, Cell, ComposedChart } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -10,7 +10,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { type RevenueRecord, type ExpenseRecord, CURRENCY_SYMBOLS, ADMIN_DEPARTMENTS, EXPENSE_CATEGORIES } from '@/types/record';
-import { fetchRecords, fetchExpenses } from '@/lib/googleSheets';
+import { fetchRecords, fetchExpensesByCurrency } from '@/lib/googleSheets';
 import { useToast } from '@/hooks/use-toast';
 import type { DateRange } from 'react-day-picker';
 
@@ -38,7 +38,7 @@ const AdminDashboard = () => {
   const [revenues, setRevenues] = useState<RevenueRecord[]>([]);
   const [hkdExpenses, setHkdExpenses] = useState<ExpenseRecord[]>([]);
   const [rmbExpenses, setRmbExpenses] = useState<ExpenseRecord[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [timeRange, setTimeRange] = useState<TimeRange>('month');
   const [periodCount, setPeriodCount] = useState(1);
   const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>();
@@ -51,25 +51,23 @@ const AdminDashboard = () => {
 
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const loadData = async (showToast = false) => {
-    setLoading(true);
-    try {
-      const [revData, expData, rate] = await Promise.all([
-        fetchRecords(showToast),
-        fetchExpenses(showToast),
-        fetch('https://open.er-api.com/v6/latest/CNY')
-          .then(r => r.json())
-          .then(d => d?.rates?.HKD ?? 0.92)
-          .catch(() => 0.92),
-      ]);
-      setRevenues(revData);
-      setHkdExpenses(expData.filter(e => (e.currency || 'HKD') === 'HKD'));
-      setRmbExpenses(expData.filter(e => e.currency === 'RMB'));
-      setExchangeRate(rate);
-      setLastSync(new Date());
-      if (showToast) toast({ title: '已同步最新數據' });
-    } catch {
-      toast({ title: '載入圖表資料失敗', variant: 'destructive' });
-    } finally {
+    if (showToast) setLoading(true);
+    const results = await Promise.allSettled([
+      fetchRecords(showToast).then(setRevenues),
+      fetchExpensesByCurrency('HKD', showToast).then(setHkdExpenses),
+      fetchExpensesByCurrency('RMB', showToast).then(setRmbExpenses),
+      fetch('https://open.er-api.com/v6/latest/CNY')
+        .then(r => r.json())
+        .then(d => setExchangeRate(d?.rates?.HKD ?? 0.92))
+        .catch(() => setExchangeRate(0.92)),
+    ]);
+    const dataResults = results.slice(0, 3);
+    if (dataResults.some(result => result.status === 'fulfilled')) setLastSync(new Date());
+    if (showToast) {
+      const failedCount = dataResults.filter(result => result.status === 'rejected').length;
+      toast(failedCount === 0
+        ? { title: '已同步最新數據' }
+        : { title: '部分資料未能同步', description: '已顯示成功讀取嘅資料，請稍後再試', variant: 'destructive' });
       setLoading(false);
     }
   };
@@ -293,15 +291,6 @@ const AdminDashboard = () => {
       </div>
     );
   };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-16">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        <span className="ml-2 text-muted-foreground">載入圖表資料中...</span>
-      </div>
-    );
-  }
 
   const timeRangeLabels: Record<TimeRange, string> = {
     day: '日',
