@@ -44,7 +44,7 @@ export function setScriptUrl(url: string): void {
 
 // GET with timeout + retry — Apps Script often returns transient 429/500
 // or simply stalls, which used to surface as "無法讀取支出資料".
-async function getWithRetry(url: string, attempts = 2, timeoutMs = 8000): Promise<Response> {
+async function getWithRetry(url: string, attempts = 1, timeoutMs = 10000): Promise<Response> {
   let lastErr: unknown;
   for (let i = 0; i < attempts; i++) {
     try {
@@ -155,7 +155,9 @@ async function postToScript(payload: Record<string, unknown>): Promise<any> {
   const request = (async () => {
   const url = getScriptUrl();
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 20000);
+  const action = String(payload.action || '');
+  const timeoutMs = action === 'login' ? 8000 : 20000;
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   let res: Response;
   try {
     res = await fetch(url, {
@@ -183,7 +185,6 @@ async function postToScript(payload: Record<string, unknown>): Promise<any> {
   }
   if (!res.ok) throw new Error(json?.error || json?.message || `請求失敗 (${res.status})`);
   if (json?.error || json?.success === false) throw new Error(json?.error || json?.message || '操作失敗');
-  const action = String(payload.action || '');
   invalidateActions(INVALIDATIONS[action] || []);
   return json;
   })().finally(() => writeInflight.delete(signature));
