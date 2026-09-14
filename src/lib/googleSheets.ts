@@ -251,11 +251,9 @@ export async function registerUser(name: string, password: string): Promise<{ su
   return await postToScript({ action: 'register', name, password });
 }
 
-export async function fetchAllUsers(): Promise<StaffUser[]> {
-  const res = await fetch(buildScriptActionUrl('getAllUsers'), { redirect: 'follow' });
-  if (!res.ok) throw new Error('無法讀取用戶資料');
-  const data = await res.json();
-  return data.users || [];
+export async function fetchAllUsers(force = false): Promise<StaffUser[]> {
+  const data = await getJson('getAllUsers', { force, optional: true });
+  return data?.users || [];
 }
 
 export async function deleteUser(name: string): Promise<{ success: boolean; message: string }> {
