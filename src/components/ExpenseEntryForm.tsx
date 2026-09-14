@@ -97,16 +97,14 @@ const ExpenseEntryForm = ({ editingRecord, onComplete, onCancelEdit }: ExpenseEn
       }
 
       setSuccess(true);
-      setTimeout(() => {
-        setSuccess(false);
-        if (!editingRecord) {
-          setAmount('');
-          setCategory('');
-          setRemarks('');
-          setCaseId('');
-        }
-        onComplete();
-      }, 1200);
+      if (!editingRecord) {
+        setAmount('');
+        setCategory('');
+        setRemarks('');
+        setCaseId('');
+      }
+      onComplete();
+      window.setTimeout(() => setSuccess(false), 600);
     } catch (err) {
       toast({ title: err instanceof Error ? err.message : '操作失敗', variant: 'destructive' });
     } finally {

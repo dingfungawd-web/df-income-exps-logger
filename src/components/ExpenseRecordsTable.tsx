@@ -256,8 +256,8 @@ const ExpenseRecordsTable = ({ onEdit, refreshKey }: ExpenseRecordsTableProps) =
                                 onClick={async () => {
                                   try {
                                     await deleteExpense(record.id, record.currency || 'HKD');
+                                    setRecords(current => current.filter(item => item.id !== record.id));
                                     toast({ title: '支出記錄已刪除' });
-                                    loadRecords();
                                   } catch {
                                     toast({ title: '刪除失敗', variant: 'destructive' });
                                   }

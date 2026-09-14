@@ -70,16 +70,14 @@ const DataEntryForm = ({ editingRecord, onComplete, onCancelEdit }: DataEntryFor
       }
 
       setSuccess(true);
-      setTimeout(() => {
-        setSuccess(false);
-        if (!editingRecord) {
-          setCaseId('');
-          setAmount('');
-          setCategory('');
-          setPaymentMethod('');
-        }
-        onComplete();
-      }, 1200);
+      if (!editingRecord) {
+        setCaseId('');
+        setAmount('');
+        setCategory('');
+        setPaymentMethod('');
+      }
+      onComplete();
+      window.setTimeout(() => setSuccess(false), 600);
     } catch (err) {
       toast({ title: err instanceof Error ? err.message : '操作失敗', variant: 'destructive' });
     } finally {

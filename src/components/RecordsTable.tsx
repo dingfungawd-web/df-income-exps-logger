@@ -320,8 +320,8 @@ const RecordsTable = ({ onEdit, refreshKey }: RecordsTableProps) => {
                                 onClick={async () => {
                                   try {
                                     await deleteRecord(record.id);
+                                    setRecords(current => current.filter(item => item.id !== record.id));
                                     toast({ title: '收入記錄已刪除' });
-                                    loadRecords();
                                   } catch {
                                     toast({ title: '刪除失敗', variant: 'destructive' });
                                   }
