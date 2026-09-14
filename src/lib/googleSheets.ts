@@ -30,12 +30,6 @@ export function getScriptUrl(): string {
 
   const normalizedStored = normalizeScriptUrl(stored);
 
-  // Auto-migrate: if stored URL differs from the latest default, update it
-  if (normalizedStored !== DEFAULT_SCRIPT_URL) {
-    localStorage.setItem(SCRIPT_URL_KEY, DEFAULT_SCRIPT_URL);
-    return DEFAULT_SCRIPT_URL;
-  }
-
   if (normalizedStored !== stored) {
     localStorage.setItem(SCRIPT_URL_KEY, normalizedStored);
   }
@@ -49,7 +43,7 @@ export function setScriptUrl(url: string): void {
 
 // GET with timeout + retry — Apps Script often returns transient 429/500
 // or simply stalls, which used to surface as "無法讀取支出資料".
-async function getWithRetry(url: string, attempts = 1, timeoutMs = 6000): Promise<Response> {
+async function getWithRetry(url: string, attempts = 1, timeoutMs = 30000): Promise<Response> {
   let lastErr: unknown;
   for (let i = 0; i < attempts; i++) {
     try {
