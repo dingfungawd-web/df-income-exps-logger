@@ -44,23 +44,26 @@ const AdminClaimPanel = () => {
   const [editHandoverForm, setEditHandoverForm] = useState({ staff: '', handoverDate: '', totalAmount: '' });
   const [editSaving, setEditSaving] = useState(false);
 
-  const loadData = async () => {
+  const loadData = async (force = false) => {
     setLoading(true);
-    try {
-      const [expData, claimData, userData, revData, hoData] = await Promise.all([
-        fetchExpenses(), fetchClaimHistory(), fetchAllUsers(), fetchRecords(), fetchHandoverHistory()
-      ]);
-      setExpenses(expData);
-      setClaims(claimData);
-      setUsers(userData);
-      setRevenues(revData);
-      setHandoverHistory(hoData);
-    } catch (err) {
-      toast({ title: '載入資料失敗', variant: 'destructive' });
-    } finally {
-      setLoading(false);
+    // Partial failures should not wipe the whole panel — load each source
+    // independently and only warn about the ones that failed.
+    const [expR, claimR, userR, revR, hoR] = await Promise.allSettled([
+      fetchExpenses(force), fetchClaimHistory(force), fetchAllUsers(force), fetchRecords(force), fetchHandoverHistory(force)
+    ]);
+    if (expR.status === 'fulfilled') setExpenses(expR.value);
+    if (claimR.status === 'fulfilled') setClaims(claimR.value);
+    if (userR.status === 'fulfilled') setUsers(userR.value);
+    if (revR.status === 'fulfilled') setRevenues(revR.value);
+    if (hoR.status === 'fulfilled') setHandoverHistory(hoR.value);
+
+    const failed = [expR, claimR, userR, revR, hoR].filter(r => r.status === 'rejected').length;
+    if (failed > 0) {
+      toast({ title: `部分資料載入失敗（${failed}）`, description: '請稍後按重新整理再試', variant: 'destructive' });
     }
+    setLoading(false);
   };
+
 
   useEffect(() => { loadData(); }, []);
 
