@@ -70,6 +70,46 @@ async function getWithRetry(url: string, attempts = 3, timeoutMs = 30000): Promi
   throw lastErr instanceof Error ? lastErr : new Error('請求失敗');
 }
 
+// ─── Shared cache + in-flight de-duplication ───
+// Several panels request the same Apps Script actions at the same time.
+// Apps Script is slow and rate-limited, so we share one request and keep a
+// short-lived cache; every write invalidates it.
+const CACHE_TTL = 60_000;
+const cache = new Map<string, { at: number; data: any }>();
+const inflight = new Map<string, Promise<any>>();
+
+export function invalidateCache(): void {
+  cache.clear();
+}
+
+async function getJson(action: string, opts: { force?: boolean; optional?: boolean } = {}): Promise<any> {
+  const key = action;
+  if (!opts.force) {
+    const hit = cache.get(key);
+    if (hit && Date.now() - hit.at < CACHE_TTL) return hit.data;
+    const pending = inflight.get(key);
+    if (pending) return pending;
+  }
+
+  const p = (async () => {
+    const res = await getWithRetry(buildScriptActionUrl(action));
+    const json = await res.json();
+    cache.set(key, { at: Date.now(), data: json });
+    return json;
+  })()
+    .catch((e) => {
+      if (opts.optional) return null;
+      throw e;
+    })
+    .finally(() => {
+      inflight.delete(key);
+    });
+
+  inflight.set(key, p);
+  return p;
+}
+
+
 // Helper for POST requests – Google Apps Script redirects can cause
 // `res.ok` to be false even when the write succeeds (CORS on redirect).
 // We try to parse the JSON body; if that succeeds with `success:true` we
@@ -81,6 +121,9 @@ async function postToScript(payload: Record<string, unknown>): Promise<any> {
     body: JSON.stringify(payload),
     redirect: 'follow',
   });
+
+  // Any write makes cached reads stale
+  invalidateCache();
 
   // Opaque responses (e.g. from no-cors fallback) – assume success
   if (res.type === 'opaque') return { success: true };
@@ -96,12 +139,11 @@ async function postToScript(payload: Record<string, unknown>): Promise<any> {
 }
 
 // ─── Revenue ───
-export async function fetchRecords(): Promise<RevenueRecord[]> {
-  const res = await fetch(buildScriptActionUrl('getAll'), { redirect: 'follow' });
-  if (!res.ok) throw new Error('無法讀取資料');
-  const data = await res.json();
-  return data.records || [];
+export async function fetchRecords(force = false): Promise<RevenueRecord[]> {
+  const data = await getJson('getAll', { force });
+  return data?.records || [];
 }
+
 
 export async function submitRecord(record: Omit<RevenueRecord, 'id'>): Promise<void> {
   await postToScript({ action: 'add', ...record });
@@ -112,11 +154,9 @@ export async function updateRecord(record: RevenueRecord): Promise<void> {
 }
 
 // ─── Handover 交數 ───
-export async function fetchHandoverHistory(): Promise<HandoverRecord[]> {
-  const res = await fetch(buildScriptActionUrl('getHandoverHistory'), { redirect: 'follow' });
-  if (!res.ok) throw new Error('無法讀取交數記錄');
-  const data = await res.json();
-  return data.records || [];
+export async function fetchHandoverHistory(force = false): Promise<HandoverRecord[]> {
+  const data = await getJson('getHandoverHistory', { force, optional: true });
+  return data?.records || [];
 }
 
 export async function confirmHandover(revenueIds: string[], staff: string, totalAmount: number): Promise<void> {
@@ -124,25 +164,16 @@ export async function confirmHandover(revenueIds: string[], staff: string, total
 }
 
 // ─── Expenses ───
-export async function fetchExpenses(): Promise<ExpenseRecord[]> {
-  const [hkdRes, rmbRes] = await Promise.all([
-    getWithRetry(buildScriptActionUrl('getExpenses')).catch((e) => {
+export async function fetchExpenses(force = false): Promise<ExpenseRecord[]> {
+  const [hkdData, rmbData] = await Promise.all([
+    getJson('getExpenses', { force }).catch((e) => {
       throw new Error('無法讀取支出資料: ' + (e instanceof Error ? e.message : ''));
     }),
-    getWithRetry(buildScriptActionUrl('getExpensesRMB')).catch(() => null),
+    getJson('getExpensesRMB', { force, optional: true }),
   ]);
-  const hkdData = await hkdRes.json();
-  const hkdRecords: ExpenseRecord[] = (hkdData.records || []).map((r: any) => ({ ...r, currency: 'HKD' as const }));
 
-  let rmbRecords: ExpenseRecord[] = [];
-  if (rmbRes) {
-    try {
-      const rmbData = await rmbRes.json();
-      rmbRecords = (rmbData.records || []).map((r: any) => ({ ...r, currency: 'RMB' as const }));
-    } catch {
-      rmbRecords = [];
-    }
-  }
+  const hkdRecords: ExpenseRecord[] = (hkdData?.records || []).map((r: any) => ({ ...r, currency: 'HKD' as const }));
+  const rmbRecords: ExpenseRecord[] = (rmbData?.records || []).map((r: any) => ({ ...r, currency: 'RMB' as const }));
 
   return [...hkdRecords, ...rmbRecords];
 }
@@ -194,20 +225,14 @@ export async function claimExpenses(expenseIds: string[], staff: string, totalAm
   await postToScript({ action, expenseIds, staff, totalAmount });
 }
 
-export async function fetchClaimHistory(): Promise<ClaimRecord[]> {
-  const [hkdRes, rmbRes] = await Promise.all([
-    fetch(buildScriptActionUrl('getClaimHistory'), { redirect: 'follow' }),
-    fetch(buildScriptActionUrl('getClaimHistoryRMB'), { redirect: 'follow' }),
+export async function fetchClaimHistory(force = false): Promise<ClaimRecord[]> {
+  const [hkdData, rmbData] = await Promise.all([
+    getJson('getClaimHistory', { force, optional: true }),
+    getJson('getClaimHistoryRMB', { force, optional: true }),
   ]);
-  if (!hkdRes.ok) throw new Error('無法讀取 Claim 記錄');
-  const hkdData = await hkdRes.json();
-  const hkdRecords: ClaimRecord[] = (hkdData.records || []).map((r: any) => ({ ...r, currency: 'HKD' as const }));
 
-  let rmbRecords: ClaimRecord[] = [];
-  if (rmbRes.ok) {
-    const rmbData = await rmbRes.json();
-    rmbRecords = (rmbData.records || []).map((r: any) => ({ ...r, currency: 'RMB' as const }));
-  }
+  const hkdRecords: ClaimRecord[] = (hkdData?.records || []).map((r: any) => ({ ...r, currency: 'HKD' as const }));
+  const rmbRecords: ClaimRecord[] = (rmbData?.records || []).map((r: any) => ({ ...r, currency: 'RMB' as const }));
 
   return [...hkdRecords, ...rmbRecords];
 }
@@ -226,11 +251,9 @@ export async function registerUser(name: string, password: string): Promise<{ su
   return await postToScript({ action: 'register', name, password });
 }
 
-export async function fetchAllUsers(): Promise<StaffUser[]> {
-  const res = await fetch(buildScriptActionUrl('getAllUsers'), { redirect: 'follow' });
-  if (!res.ok) throw new Error('無法讀取用戶資料');
-  const data = await res.json();
-  return data.users || [];
+export async function fetchAllUsers(force = false): Promise<StaffUser[]> {
+  const data = await getJson('getAllUsers', { force, optional: true });
+  return data?.users || [];
 }
 
 export async function deleteUser(name: string): Promise<{ success: boolean; message: string }> {
